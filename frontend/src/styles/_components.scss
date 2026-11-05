@@ -1,0 +1,253 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.card {
+  background: $color-superficie;
+  border: 1px solid $color-borde;
+  border-radius: $radio;
+  box-shadow: $sombra;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  p {
+    margin: 0.15rem 0 0;
+    color: $color-texto-suave;
+  }
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: 0.9rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.5rem 0.95rem;
+  border-radius: 6px;
+  border: 1px solid $color-borde;
+  background: $color-superficie;
+  color: $color-texto;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  &:hover {
+    text-decoration: none;
+  }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  &.btn-primary {
+    @include boton($color-primario);
+  }
+  &.btn-danger {
+    @include boton($color-peligro);
+  }
+  &.btn-ok {
+    @include boton($color-exito);
+  }
+  &.btn-sm {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.8rem;
+  }
+  &.block {
+    width: 100%;
+  }
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  th,
+  td {
+    text-align: left;
+    padding: 0.55rem 0.65rem;
+    border-bottom: 1px solid $color-borde;
+    vertical-align: middle;
+  }
+  th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: $color-texto-suave;
+  }
+  .acciones {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem 1.1rem;
+  align-items: start;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: $color-texto-suave;
+  }
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: $color-texto;
+  &:focus {
+    outline: 2px solid rgba($color-primario, 0.35);
+    border-color: $color-primario;
+  }
+  &.ng-invalid.ng-touched {
+    border-color: $color-peligro;
+  }
+}
+
+.field-error {
+  color: $color-peligro;
+  font-size: 0.78rem;
+}
+
+.alert {
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  margin: 0.6rem 0;
+  font-size: 0.88rem;
+  &.alert-error {
+    background: #fee2e2;
+    color: #7f1d1d;
+  }
+  &.alert-info {
+    background: #e0f2fe;
+    color: #075985;
+  }
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+  &.ok {
+    @include insignia(#dcfce7, #166534);
+  }
+  &.warn {
+    @include insignia(#fef3c7, #92400e);
+  }
+  &.danger {
+    @include insignia(#fee2e2, #991b1b);
+  }
+  &.info {
+    @include insignia(#dbeafe, #1e40af);
+  }
+  &.neutral {
+    @include insignia(#e2e8f0, #334155);
+  }
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid $color-borde;
+  margin-bottom: 0.9rem;
+  button {
+    border: 0;
+    background: none;
+    padding: 0.55rem 0.9rem;
+    cursor: pointer;
+    font: inherit;
+    color: $color-texto-suave;
+    border-bottom: 2px solid transparent;
+    &.activa {
+      color: $color-primario;
+      border-bottom-color: $color-primario;
+      font-weight: 600;
+    }
+  }
+}
+
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.vacio {
+  color: $color-texto-suave;
+  text-align: center;
+  padding: 1.2rem 0;
+}
+
+.detalle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.8rem;
+  dt {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: $color-texto-suave;
+  }
+  dd {
+    margin: 0.1rem 0 0;
+    font-weight: 600;
+  }
+}
+
+.paginador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+  font-size: 0.85rem;
+  color: $color-texto-suave;
+
+  .paginador-botones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+  }
+}
+
+.ayuda {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: $color-texto-suave;
+}

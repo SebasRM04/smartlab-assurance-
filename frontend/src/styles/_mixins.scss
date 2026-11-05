@@ -1,0 +1,21 @@
+@use 'variables' as *;
+
+@mixin movil {
+  @media (max-width: $bp-movil) {
+    @content;
+  }
+}
+
+@mixin boton($fondo, $texto: #fff) {
+  background: $fondo;
+  color: $texto;
+  border-color: $fondo;
+  &:hover:not(:disabled) {
+    filter: brightness(0.93);
+  }
+}
+
+@mixin insignia($fondo, $texto) {
+  background: $fondo;
+  color: $texto;
+}
