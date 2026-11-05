@@ -1,0 +1,27 @@
+# Maven
+target/
+*.jar
+*.war
+
+# Base de datos H2 persistente (APF2) - cada quien genera la suya localmente
+data/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Variables de entorno / configuración local (si se agrega en APF2)
+.env
+application-local.properties
