@@ -19,7 +19,9 @@ public class UsuarioActualService {
             throw new RuntimeException("No hay un usuario autenticado en el contexto");
         }
         String email = authentication.getName();
-        return usuarioRepository.findByEmail(email)
+        return usuarioRepository.findAll().stream()
+                .filter(u -> u.getEmail() != null && u.getEmail().equals(email))
+                .findFirst()
                 .orElseThrow(() -> new RuntimeException("Usuario autenticado no encontrado en la base de datos"));
     }
 }

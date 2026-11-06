@@ -33,7 +33,7 @@ public class CategoriaService {
     public CategoriaResponseDTO crearCategoria(CategoriaRequestDTO dto) {
         Categoria categoria = new Categoria();
         categoria.setNombre(dto.getNombre());
-        categoria.setDescripcion(dto.getDescripcion());
+        categoria.setdetalle(dto.getDescripcion());
         Categoria guardada = categoriaRepository.save(categoria);
         auditoriaService.registrarAccion("CREAR_CATEGORIA", "Se creó la categoría: " + guardada.getNombre());
         return mapearADTO(guardada);
@@ -43,7 +43,7 @@ public class CategoriaService {
         Categoria categoria = categoriaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Categoría no encontrada con ID: " + id));
         categoria.setNombre(dto.getNombre());
-        categoria.setDescripcion(dto.getDescripcion());
+        categoria.setdetalle(dto.getDescripcion());
         Categoria actualizada = categoriaRepository.save(categoria);
         auditoriaService.registrarAccion("ACTUALIZAR_CATEGORIA", "Se actualizó la categoría ID: " + id);
         return mapearADTO(actualizada);
@@ -61,7 +61,7 @@ public class CategoriaService {
         CategoriaResponseDTO dto = new CategoriaResponseDTO();
         dto.setId(c.getId());
         dto.setNombre(c.getNombre());
-        dto.setDescripcion(c.getDescripcion());
+        dto.setDescripcion(c.getdetalle());
         return dto;
     }
 }

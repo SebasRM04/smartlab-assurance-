@@ -27,10 +27,10 @@ public class AuditoriaService {
             auditoria.setUsuario(usuario);
             auditoria.setAccion(accion);
             auditoria.setDetalles(detalles);
-            auditoria.setFecha(LocalDateTime.now());
+            auditoria.setFechaCreacion(LocalDateTime.now());
             auditoriaRepository.save(auditoria);
         } catch (Exception e) {
-            // Fallback si no hay usuario en sesión explícita
+            // Fallback si no hay sesión activa
         }
     }
 
@@ -41,7 +41,7 @@ public class AuditoriaService {
             dto.setUsuarioEmail(a.getUsuario() != null ? a.getUsuario().getEmail() : "Sistema");
             dto.setAccion(a.getAccion());
             dto.setDetalles(a.getDetalles());
-            dto.setFecha(a.getFecha());
+            dto.setFecha(a.getFechaCreacion());
             return dto;
         }).collect(Collectors.toList());
     }

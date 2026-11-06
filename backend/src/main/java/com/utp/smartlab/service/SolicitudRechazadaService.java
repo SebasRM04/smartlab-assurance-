@@ -13,7 +13,7 @@ public class SolicitudRechazadaService {
 
     public void registrarRechazo(String tipo, String motivo, Long usuarioId) {
         SolicitudRechazada solicitud = new SolicitudRechazada();
-        solicitud.setTipoSolicitud(tipo);
+        solicitud.setTipo(tipo);
         solicitud.setMotivo(motivo);
         solicitud.setUsuarioId(usuarioId);
         solicitudRechazadaRepository.save(solicitud);

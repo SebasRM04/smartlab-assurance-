@@ -42,19 +42,21 @@ public class UsuarioService {
     }
 
     public UsuarioResponseDTO crearUsuario(UsuarioRequestDTO dto) {
-        if (usuarioRepository.existsByEmail(dto.getEmail())) {
+        boolean existe = usuarioRepository.findAll().stream()
+                .anyMatch(u -> u.getEmail() != null && u.getEmail().equals(dto.getEmail()));
+        if (existe) {
             throw new EmailDuplicadoException("El email ya está registrado: " + dto.getEmail());
         }
         Rol rol = rolRepository.findById(dto.getRolId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Rol no encontrado con ID: " + dto.getRolId()));
 
         Usuario usuario = new Usuario();
-        usuario.setNombre(dto.getNombre());
-        usuario.setApellido(dto.getApellido());
+        usuario.setNombres(dto.getNombre());
+        usuario.setApellidos(dto.getApellido());
         usuario.setEmail(dto.getEmail());
-        usuario.setPassword(passwordEncoder.encode(dto.getPassword()));
+        usuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         usuario.setRol(rol);
-        usuario.setActivo(true);
+        usuario.setEstado(true);
 
         Usuario guardado = usuarioRepository.save(usuario);
         auditoriaService.registrarAccion("CREAR_USUARIO", "Se creó el usuario: " + guardado.getEmail());
@@ -68,8 +70,8 @@ public class UsuarioService {
         Rol rol = rolRepository.findById(dto.getRolId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Rol no encontrado con ID: " + dto.getRolId()));
 
-        usuario.setNombre(dto.getNombre());
-        usuario.setApellido(dto.getApellido());
+        usuario.setNombres(dto.getNombre());
+        usuario.setApellidos(dto.getApellido());
         usuario.setEmail(dto.getEmail());
         usuario.setRol(rol);
 
@@ -81,7 +83,7 @@ public class UsuarioService {
     public void eliminarUsuario(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado con ID: " + id));
-        usuario.setActivo(false);
+        usuario.setEstado(false);
         usuarioRepository.save(usuario);
         auditoriaService.registrarAccion("ELIMINAR_USUARIO", "Se desactivó el usuario ID: " + id);
     }
@@ -89,11 +91,11 @@ public class UsuarioService {
     private UsuarioResponseDTO mapearADTO(Usuario u) {
         UsuarioResponseDTO dto = new UsuarioResponseDTO();
         dto.setId(u.getId());
-        dto.setNombre(u.getNombre());
-        dto.setApellido(u.getApellido());
+        dto.setNombre(u.getNombres());
+        dto.setApellido(u.getApellidos());
         dto.setEmail(u.getEmail());
         dto.setRol(u.getRol() != null ? u.getRol().getNombre().name() : null);
-        dto.setActivo(u.getActivo());
+        dto.setActivo(u.getEstado());
         return dto;
     }
 }
