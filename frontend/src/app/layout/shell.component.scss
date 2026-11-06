@@ -1,0 +1,101 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+
+  @include movil {
+    flex-direction: column;
+  }
+}
+
+.sidebar {
+  width: $sidebar-ancho;
+  flex-shrink: 0;
+  background: $color-primario-oscuro;
+  color: #fff;
+  padding: 1.2rem 0.9rem;
+
+  @include movil {
+    width: 100%;
+    padding: 0.7rem;
+  }
+}
+
+.marca {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 1.4rem;
+  text-decoration: none;
+
+  span {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 400;
+    opacity: 0.75;
+  }
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+
+  @include movil {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  a {
+    color: #dbeafe;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    text-decoration: none;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    &.activo {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-weight: 600;
+    }
+  }
+}
+
+.contenido {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1.4rem;
+  background: $color-superficie;
+  border-bottom: 1px solid $color-borde;
+}
+
+.usuario {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+
+  .rol {
+    font-size: 0.72rem;
+    color: $color-texto-suave;
+  }
+}
+
+.pagina {
+  padding: 1.4rem;
+}
