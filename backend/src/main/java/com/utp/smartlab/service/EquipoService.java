@@ -5,7 +5,6 @@ import com.utp.smartlab.dto.EquipoRequestDTO;
 import com.utp.smartlab.dto.EquipoResponseDTO;
 import com.utp.smartlab.dto.HistorialEstadoResponseDTO;
 import com.utp.smartlab.entity.*;
-import com.utp.smartlab.exception.EquipoNoDisponibleException;
 import com.utp.smartlab.exception.RecursoNoEncontradoException;
 import com.utp.smartlab.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,13 +51,13 @@ public class EquipoService {
         Equipo equipo = new Equipo();
         equipo.setCodigo(dto.getCodigo());
         equipo.setNombre(dto.getNombre());
-        equipo.setDescripcion(dto.getDescripcion());
+        equipo.setdetalle(dto.getDescripcion());
         equipo.setCategoria(categoria);
         equipo.setEstadoEquipo(estado);
 
         Equipo guardado = equipoRepository.save(equipo);
 
-        registrarHistorial(guardado, null, estado.getNombre(), "Creación inicial del equipo");
+        registrarHistorial(guardado, null, estado != null ? estado.getNombre() : "ESTADO", "Creación inicial del equipo");
         auditoriaService.registrarAccion("CREAR_EQUIPO", "Se creó el equipo: " + guardado.getCodigo());
 
         return mapearADTO(guardado);
@@ -74,11 +73,11 @@ public class EquipoService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Estado de equipo no encontrado con ID: " + dto.getEstadoEquipoId()));
 
         String estadoAnterior = equipo.getEstadoEquipo() != null ? equipo.getEstadoEquipo().getNombre() : "NINGUNO";
-        String estadoNuevo = nuevoEstado.getNombre();
+        String estadoNuevo = nuevoEstado != null ? nuevoEstado.getNombre() : "NUEVO";
 
         equipo.setCodigo(dto.getCodigo());
         equipo.setNombre(dto.getNombre());
-        equipo.setDescripcion(dto.getDescripcion());
+        equipo.setdetalle(dto.getDescripcion());
         equipo.setCategoria(categoria);
         equipo.setEstadoEquipo(nuevoEstado);
 
@@ -96,16 +95,18 @@ public class EquipoService {
         if (!equipoRepository.existsById(equipoId)) {
             throw new RecursoNoEncontradoException("Equipo no encontrado con ID: " + equipoId);
         }
-        return historialRepository.findByEquipoId(equipoId).stream().map(h -> {
-            HistorialEstadoResponseDTO dto = new HistorialEstadoResponseDTO();
-            dto.setId(h.getId());
-            dto.setEquipoId(h.getEquipo().getId());
-            dto.setEstadoAnterior(h.getEstadoAnterior());
-            dto.setEstadoNuevo(h.getEstadoNuevo());
-            dto.setFechaCambio(h.getFechaCambio());
-            dto.setMotivo(h.getMotivo());
-            return dto;
-        }).collect(Collectors.toList());
+        return historialRepository.findAll().stream()
+                .filter(h -> h.getEquipo() != null && h.getEquipo().getId().equals(equipoId))
+                .map(h -> {
+                    HistorialEstadoResponseDTO dto = new HistorialEstadoResponseDTO();
+                    dto.setId(h.getId());
+                    dto.setEquipoId(h.getEquipo().getId());
+                    dto.setEstadoAnterior(h.getEstadoAnterior());
+                    dto.setEstadoNuevo(h.getEstadoNuevo());
+                    dto.setFechaCambio(h.getFechaCreacion());
+                    dto.setMotivo(h.getMotivo());
+                    return dto;
+                }).collect(Collectors.toList());
     }
 
     public List<EquipoRecomendacionDTO> recomendarEquipos() {
@@ -124,7 +125,7 @@ public class EquipoService {
         historial.setEquipo(equipo);
         historial.setEstadoAnterior(anterior);
         historial.setEstadoNuevo(nuevo);
-        historial.setFechaCambio(LocalDateTime.now());
+        historial.setFechaCreacion(LocalDateTime.now());
         historial.setMotivo(motivo);
         historialRepository.save(historial);
     }
@@ -134,7 +135,7 @@ public class EquipoService {
         dto.setId(e.getId());
         dto.setCodigo(e.getCodigo());
         dto.setNombre(e.getNombre());
-        dto.setDescripcion(e.getDescripcion());
+        dto.setDescripcion(e.getdetalle());
         dto.setCategoriaNombre(e.getCategoria() != null ? e.getCategoria().getNombre() : null);
         dto.setEstadoEquipoNombre(e.getEstadoEquipo() != null ? e.getEstadoEquipo().getNombre() : null);
         return dto;

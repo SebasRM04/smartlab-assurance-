@@ -48,9 +48,10 @@ public class ReservaService {
         Equipo equipo = equipoRepository.findById(dto.getEquipoId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Equipo no encontrado con ID: " + dto.getEquipoId()));
 
-        // Validación básica de disponibilidad por solapamiento de fechas
-        boolean ocupado = reservaRepository.existsByEquipoIdAndFechaInicioLessThanEqualAndFechaFinGreaterThanEqual(
-                equipo.getId(), dto.getFechaFin(), dto.getFechaInicio());
+        boolean ocupado = reservaRepository.findAll().stream().anyMatch(r -> 
+            r.getEquipo() != null && r.getEquipo().getId().equals(equipo.getId()) &&
+            !(r.getFechaFin().isBefore(dto.getFechaInicio()) || r.getFechaInicio().isAfter(dto.getFechaFin()))
+        );
 
         if (ocupado) {
             solicitudRechazadaService.registrarRechazo("RESERVA", "Equipo no disponible en el rango de fechas seleccionado", usuario.getId());
@@ -82,7 +83,7 @@ public class ReservaService {
         ReservaResponseDTO dto = new ReservaResponseDTO();
         dto.setId(r.getId());
         dto.setUsuarioId(r.getUsuario() != null ? r.getUsuario().getId() : null);
-        dto.setUsuarioNombre(r.getUsuario() != null ? r.getUsuario().getNombre() + " " + r.getUsuario().getApellido() : null);
+        dto.setUsuarioNombre(r.getUsuario() != null ? r.getUsuario().getNombres() + " " + r.getUsuario().getApellidos() : null);
         dto.setEquipoId(r.getEquipo() != null ? r.getEquipo().getId() : null);
         dto.setEquipoNombre(r.getEquipo() != null ? r.getEquipo().getNombre() : null);
         dto.setFechaInicio(r.getFechaInicio());

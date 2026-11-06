@@ -51,7 +51,10 @@ public class PrestamoService {
         Usuario usuario = usuarioRepository.findById(dto.getUsuarioId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado con ID: " + dto.getUsuarioId()));
 
-        boolean enCurso = prestamoRepository.existsByEquipoIdAndEstado(equipo.getId(), "ACTIVO");
+        boolean enCurso = prestamoRepository.findAll().stream().anyMatch(p ->
+            p.getEquipo() != null && p.getEquipo().getId().equals(equipo.getId()) && "ACTIVO".equals(p.getEstado())
+        );
+
         if (enCurso) {
             solicitudRechazadaService.registrarRechazo("PRESTAMO", "El equipo ya se encuentra en préstamo activo", usuario.getId());
             throw new EquipoNoDisponibleException("El equipo ya cuenta con un préstamo activo en este momento.");
@@ -87,7 +90,7 @@ public class PrestamoService {
         dto.setEquipoId(p.getEquipo() != null ? p.getEquipo().getId() : null);
         dto.setEquipoNombre(p.getEquipo() != null ? p.getEquipo().getNombre() : null);
         dto.setUsuarioId(p.getUsuario() != null ? p.getUsuario().getId() : null);
-        dto.setUsuarioNombre(p.getUsuario() != null ? p.getUsuario().getNombre() + " " + p.getUsuario().getApellido() : null);
+        dto.setUsuarioNombre(p.getUsuario() != null ? p.getUsuario().getNombres() + " " + p.getUsuario().getApellidos() : null);
         dto.setFechaPrestamo(p.getFechaPrestamo());
         dto.setFechaDevolucionEstimada(p.getFechaDevolucionEstimada());
         dto.setFechaDevolucionReal(p.getFechaDevolucionReal());
