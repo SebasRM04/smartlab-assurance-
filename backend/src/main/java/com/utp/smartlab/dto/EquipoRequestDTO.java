@@ -1,11 +1,23 @@
 package com.utp.smartlab.dto;
-import lombok.Data;
 
-@Data
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class EquipoRequestDTO {
-    private String codigo;
+
+    @NotBlank(message = "El nombre del equipo es obligatorio")
     private String nombre;
-    private String descripcion;
+
+    @NotNull(message = "La categoría es obligatoria")
     private Long categoriaId;
-    private Long estadoEquipoId;
+
+    private String ubicacion;
 }

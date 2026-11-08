@@ -1,9 +1,19 @@
 package com.utp.smartlab.dto;
-import lombok.Data;
 
-@Data
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class DisponibilidadMetricasDTO {
-    private Long equiposDisponibles;
-    private Long equiposEnUso;
-    private Long equiposEnMantenimiento;
+
+    private long totalEquiposEnMantenimiento;
+    private long equiposCorrectamenteBloqueados;
+    private double exactitudDisponibilidad;
 }

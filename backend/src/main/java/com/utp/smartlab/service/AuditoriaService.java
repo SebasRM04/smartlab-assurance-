@@ -2,47 +2,80 @@ package com.utp.smartlab.service;
 
 import com.utp.smartlab.dto.AuditoriaResponseDTO;
 import com.utp.smartlab.entity.Auditoria;
-import com.utp.smartlab.entity.Usuario;
 import com.utp.smartlab.repository.AuditoriaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.utp.smartlab.repository.UsuarioRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class AuditoriaService {
 
-    @Autowired
-    private AuditoriaRepository auditoriaRepository;
+    private final AuditoriaRepository auditoriaRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    @Autowired
-    private UsuarioActualService usuarioActualService;
-
-    public void registrarAccion(String accion, String detalles) {
-        try {
-            Usuario usuario = usuarioActualService.obtenerUsuarioActual();
-            Auditoria auditoria = new Auditoria();
-            auditoria.setUsuario(usuario);
-            auditoria.setAccion(accion);
-            auditoria.setDetalles(detalles);
-            auditoria.setFechaCreacion(LocalDateTime.now());
-            auditoriaRepository.save(auditoria);
-        } catch (Exception e) {
-            // Fallback si no hay sesión activa
-        }
+    public AuditoriaService(AuditoriaRepository auditoriaRepository, UsuarioRepository usuarioRepository) {
+        this.auditoriaRepository = auditoriaRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
-    public List<AuditoriaResponseDTO> listarAuditorias() {
-        return auditoriaRepository.findAll().stream().map(a -> {
-            AuditoriaResponseDTO dto = new AuditoriaResponseDTO();
-            dto.setId(a.getId());
-            dto.setUsuarioEmail(a.getUsuario() != null ? a.getUsuario().getEmail() : "Sistema");
-            dto.setAccion(a.getAccion());
-            dto.setDetalles(a.getDetalles());
-            dto.setFecha(a.getFechaCreacion());
-            return dto;
-        }).collect(Collectors.toList());
+    @Transactional
+    public void registrar(String accion, String entidadAfectada, String detalle) {
+        String email = obtenerEmailAutenticado();
+        if (email == null) {
+            return;
+        }
+        registrarParaEmail(email, accion, entidadAfectada, detalle);
+    }
+
+    @Transactional
+    public void registrarParaEmail(String email, String accion, String entidadAfectada, String detalle) {
+        usuarioRepository.buscarPorEmail(email).ifPresent(usuario -> {
+            Auditoria registro = Auditoria.builder()
+                    .usuario(usuario)
+                    .accion(accion)
+                    .entidadAfectada(entidadAfectada)
+                    .fechaHora(LocalDateTime.now())
+                    .detalle(detalle)
+                    .build();
+            auditoriaRepository.save(registro);
+        });
+    }
+
+    public List<AuditoriaResponseDTO> listar() {
+        return auditoriaRepository.findAll().stream()
+                .map(this::mapearAResponseDTO)
+                .toList();
+    }
+
+    public List<AuditoriaResponseDTO> listarPorUsuario(Long usuarioId) {
+        return auditoriaRepository.buscarPorUsuarioId(usuarioId).stream()
+                .map(this::mapearAResponseDTO)
+                .toList();
+    }
+
+    private String obtenerEmailAutenticado() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return null;
+        }
+        return auth.getName();
+    }
+
+    private AuditoriaResponseDTO mapearAResponseDTO(Auditoria auditoria) {
+        return AuditoriaResponseDTO.builder()
+                .id(auditoria.getId())
+                .usuarioId(auditoria.getUsuario().getId())
+                .usuarioNombre(auditoria.getUsuario().getNombre())
+                .accion(auditoria.getAccion())
+                .entidadAfectada(auditoria.getEntidadAfectada())
+                .fechaHora(auditoria.getFechaHora())
+                .detalle(auditoria.getDetalle())
+                .build();
     }
 }

@@ -3,65 +3,80 @@ package com.utp.smartlab.service;
 import com.utp.smartlab.dto.CategoriaRequestDTO;
 import com.utp.smartlab.dto.CategoriaResponseDTO;
 import com.utp.smartlab.entity.Categoria;
+import com.utp.smartlab.exception.OperacionNoPermitidaException;
 import com.utp.smartlab.exception.RecursoNoEncontradoException;
 import com.utp.smartlab.repository.CategoriaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.utp.smartlab.repository.EquipoRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class CategoriaService {
 
-    @Autowired
-    private CategoriaRepository categoriaRepository;
+    private final CategoriaRepository categoriaRepository;
+    private final EquipoRepository equipoRepository;
 
-    @Autowired
-    private AuditoriaService auditoriaService;
+    public CategoriaService(CategoriaRepository categoriaRepository, EquipoRepository equipoRepository) {
+        this.categoriaRepository = categoriaRepository;
+        this.equipoRepository = equipoRepository;
+    }
 
-    public List<CategoriaResponseDTO> listarCategorias() {
-        return categoriaRepository.findAll().stream().map(this::mapearADTO).collect(Collectors.toList());
+    @Transactional
+    public CategoriaResponseDTO crear(CategoriaRequestDTO dto) {
+        String nombre = dto.getNombre().trim();
+        if (categoriaRepository.existsByNombreIgnoreCase(nombre)) {
+            throw new OperacionNoPermitidaException("Ya existe una categoría con el nombre '" + nombre + "'");
+        }
+        Categoria guardada = categoriaRepository.save(Categoria.builder().nombre(nombre).build());
+        return mapear(guardada);
+    }
+
+    public List<CategoriaResponseDTO> listar() {
+        return categoriaRepository.findAllByOrderByNombreAsc().stream()
+                .map(this::mapear)
+                .toList();
     }
 
     public CategoriaResponseDTO obtenerPorId(Long id) {
-        Categoria categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Categoría no encontrada con ID: " + id));
-        return mapearADTO(categoria);
+        return mapear(buscarEntidadPorId(id));
     }
 
-    public CategoriaResponseDTO crearCategoria(CategoriaRequestDTO dto) {
-        Categoria categoria = new Categoria();
-        categoria.setNombre(dto.getNombre());
-        categoria.setdetalle(dto.getDescripcion());
-        Categoria guardada = categoriaRepository.save(categoria);
-        auditoriaService.registrarAccion("CREAR_CATEGORIA", "Se creó la categoría: " + guardada.getNombre());
-        return mapearADTO(guardada);
-    }
-
-    public CategoriaResponseDTO actualizarCategoria(Long id, CategoriaRequestDTO dto) {
-        Categoria categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Categoría no encontrada con ID: " + id));
-        categoria.setNombre(dto.getNombre());
-        categoria.setdetalle(dto.getDescripcion());
-        Categoria actualizada = categoriaRepository.save(categoria);
-        auditoriaService.registrarAccion("ACTUALIZAR_CATEGORIA", "Se actualizó la categoría ID: " + id);
-        return mapearADTO(actualizada);
-    }
-
-    public void eliminarCategoria(Long id) {
-        if (!categoriaRepository.existsById(id)) {
-            throw new RecursoNoEncontradoException("Categoría no encontrada con ID: " + id);
+    @Transactional
+    public CategoriaResponseDTO actualizar(Long id, CategoriaRequestDTO dto) {
+        Categoria categoria = buscarEntidadPorId(id);
+        String nombre = dto.getNombre().trim();
+        if (categoriaRepository.existsByNombreIgnoreCaseAndIdNot(nombre, id)) {
+            throw new OperacionNoPermitidaException("Ya existe una categoría con el nombre '" + nombre + "'");
         }
-        categoriaRepository.deleteById(id);
-        auditoriaService.registrarAccion("ELIMINAR_CATEGORIA", "Se eliminó la categoría ID: " + id);
+        categoria.setNombre(nombre);
+        return mapear(categoriaRepository.save(categoria));
     }
 
-    private CategoriaResponseDTO mapearADTO(Categoria c) {
-        CategoriaResponseDTO dto = new CategoriaResponseDTO();
-        dto.setId(c.getId());
-        dto.setNombre(c.getNombre());
-        dto.setDescripcion(c.getdetalle());
-        return dto;
+    @Transactional
+    public void eliminar(Long id) {
+        Categoria categoria = buscarEntidadPorId(id);
+        // Regla de negocio: no se elimina una categoría que ya tiene equipos
+        long equipos = equipoRepository.contarPorCategoriaId(id);
+        if (equipos > 0) {
+            throw new OperacionNoPermitidaException(
+                    "No se puede eliminar la categoría '" + categoria.getNombre() + "': tiene "
+                            + equipos + " equipo(s) asociado(s)");
+        }
+        categoriaRepository.delete(categoria);
+    }
+
+    public Categoria buscarEntidadPorId(Long id) {
+        return categoriaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró la categoría con id " + id));
+    }
+
+    private CategoriaResponseDTO mapear(Categoria categoria) {
+        return CategoriaResponseDTO.builder()
+                .id(categoria.getId())
+                .nombre(categoria.getNombre())
+                .build();
     }
 }

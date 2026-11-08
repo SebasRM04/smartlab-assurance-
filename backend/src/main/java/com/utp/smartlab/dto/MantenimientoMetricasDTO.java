@@ -1,9 +1,20 @@
 package com.utp.smartlab.dto;
-import lombok.Data;
 
-@Data
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class MantenimientoMetricasDTO {
-    private Long totalMantenimientos;
-    private Long preventivos;
-    private Long correctivos;
+
+    private long total;
+    private long cerrados;
+    private long tardios;
+    private double tasaTardio;
 }

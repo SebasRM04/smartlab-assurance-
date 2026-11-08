@@ -1,9 +1,22 @@
 package com.utp.smartlab.dto;
-import lombok.Data;
 
-@Data
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class PrestamoMetricasDTO {
-    private Long totalPrestamos;
-    private Long activos;
-    private Long devueltos;
+
+    private long total;
+    private long activos;
+    private long devueltos;
+    private long conMora;
+    private long vencidos;
+    private double tasaMora;
 }
