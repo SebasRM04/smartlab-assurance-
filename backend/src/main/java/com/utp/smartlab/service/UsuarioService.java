@@ -1,101 +1,153 @@
 package com.utp.smartlab.service;
 
+import com.utp.smartlab.dto.JwtResponseDTO;
+import com.utp.smartlab.dto.LoginRequestDTO;
 import com.utp.smartlab.dto.UsuarioRequestDTO;
 import com.utp.smartlab.dto.UsuarioResponseDTO;
 import com.utp.smartlab.dto.UsuarioUpdateDTO;
 import com.utp.smartlab.entity.Rol;
 import com.utp.smartlab.entity.Usuario;
+import com.utp.smartlab.exception.CredencialesInvalidasException;
 import com.utp.smartlab.exception.EmailDuplicadoException;
+import com.utp.smartlab.exception.OperacionNoPermitidaException;
 import com.utp.smartlab.exception.RecursoNoEncontradoException;
+import com.utp.smartlab.repository.AuditoriaRepository;
 import com.utp.smartlab.repository.RolRepository;
 import com.utp.smartlab.repository.UsuarioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.utp.smartlab.security.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class UsuarioService {
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final RolRepository rolRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
+    private final AuditoriaRepository auditoriaRepository;
 
-    @Autowired
-    private RolRepository rolRepository;
+    public UsuarioService(UsuarioRepository usuarioRepository,
+                           RolRepository rolRepository,
+                           PasswordEncoder passwordEncoder,
+                           JwtUtil jwtUtil,
+                           AuditoriaRepository auditoriaRepository) {
+        this.usuarioRepository = usuarioRepository;
+        this.rolRepository = rolRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
+        this.auditoriaRepository = auditoriaRepository;
+    }
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    @Transactional
+    public UsuarioResponseDTO registrar(UsuarioRequestDTO dto) {
+        if (usuarioRepository.existsByEmail(dto.getEmail())) {
+            throw new EmailDuplicadoException("Ya existe un usuario registrado con el email " + dto.getEmail());
+        }
 
-    @Autowired
-    private AuditoriaService auditoriaService;
+        Rol rol = rolRepository.findByNombre(dto.getRol())
+                .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el rol " + dto.getRol()));
 
-    public List<UsuarioResponseDTO> listarUsuarios() {
-        return usuarioRepository.findAll().stream().map(this::mapearADTO).collect(Collectors.toList());
+        Usuario usuario = Usuario.builder()
+                .nombre(dto.getNombre())
+                .email(dto.getEmail())
+                .passwordHash(passwordEncoder.encode(dto.getPassword()))
+                .rol(rol)
+                .build();
+
+        Usuario guardado = usuarioRepository.save(usuario);
+        return mapearAResponseDTO(guardado);
+    }
+
+    public List<UsuarioResponseDTO> listar() {
+        return usuarioRepository.findAll().stream()
+                .map(this::mapearAResponseDTO)
+                .toList();
     }
 
     public UsuarioResponseDTO obtenerPorId(Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado con ID: " + id));
-        return mapearADTO(usuario);
+        return mapearAResponseDTO(buscarEntidadPorId(id));
     }
 
-    public UsuarioResponseDTO crearUsuario(UsuarioRequestDTO dto) {
-        boolean existe = usuarioRepository.findAll().stream()
-                .anyMatch(u -> u.getEmail() != null && u.getEmail().equals(dto.getEmail()));
-        if (existe) {
-            throw new EmailDuplicadoException("El email ya está registrado: " + dto.getEmail());
+    @Transactional
+    public UsuarioResponseDTO actualizar(Long id, UsuarioUpdateDTO dto, String emailSolicitante) {
+        Usuario usuario = buscarEntidadPorId(id);
+
+        if (!usuario.getEmail().equals(dto.getEmail()) && usuarioRepository.existsByEmail(dto.getEmail())) {
+            throw new EmailDuplicadoException("Ya existe un usuario registrado con el email " + dto.getEmail());
         }
-        Rol rol = rolRepository.findById(dto.getRolId())
-                .orElseThrow(() -> new RecursoNoEncontradoException("Rol no encontrado con ID: " + dto.getRolId()));
 
-        Usuario usuario = new Usuario();
-        usuario.setNombres(dto.getNombre());
-        usuario.setApellidos(dto.getApellido());
+        Rol nuevoRol = rolRepository.findByNombre(dto.getRol())
+                .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el rol " + dto.getRol()));
+
+        boolean esElMismoUsuario = usuario.getEmail().equals(emailSolicitante);
+        // Regla de negocio: un administrador no cambia su propio rol
+        if (esElMismoUsuario && usuario.getRol().getNombre() != dto.getRol()) {
+            throw new OperacionNoPermitidaException("No puedes cambiar tu propio rol; pídele a otro administrador que lo haga");
+        }
+
+        usuario.setNombre(dto.getNombre());
         usuario.setEmail(dto.getEmail());
-        usuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
-        usuario.setRol(rol);
-        usuario.setEstado(true);
+        usuario.setRol(nuevoRol);
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            usuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        }
 
-        Usuario guardado = usuarioRepository.save(usuario);
-        auditoriaService.registrarAccion("CREAR_USUARIO", "Se creó el usuario: " + guardado.getEmail());
-        return mapearADTO(guardado);
+        return mapearAResponseDTO(usuarioRepository.save(usuario));
     }
 
-    public UsuarioResponseDTO actualizarUsuario(Long id, UsuarioUpdateDTO dto) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado con ID: " + id));
+    @Transactional
+    public void eliminar(Long id, String emailSolicitante) {
+        Usuario usuario = buscarEntidadPorId(id);
 
-        Rol rol = rolRepository.findById(dto.getRolId())
-                .orElseThrow(() -> new RecursoNoEncontradoException("Rol no encontrado con ID: " + dto.getRolId()));
+        if (usuario.getEmail().equals(emailSolicitante)) {
+            throw new OperacionNoPermitidaException("No puedes eliminar tu propio usuario");
+        }
+        // Regla de negocio: no se borra a quien ya tiene auditoría
+        if (auditoriaRepository.contarPorUsuarioId(id) > 0) {
+            throw new OperacionNoPermitidaException(
+                    "No se puede eliminar a '" + usuario.getNombre()
+                            + "': tiene acciones registradas en la bitácora de auditoría, que se conservan por trazabilidad");
+        }
 
-        usuario.setNombres(dto.getNombre());
-        usuario.setApellidos(dto.getApellido());
-        usuario.setEmail(dto.getEmail());
-        usuario.setRol(rol);
-
-        Usuario actualizado = usuarioRepository.save(usuario);
-        auditoriaService.registrarAccion("ACTUALIZAR_USUARIO", "Se actualizó el usuario ID: " + id);
-        return mapearADTO(actualizado);
+        usuarioRepository.delete(usuario);
     }
 
-    public void eliminarUsuario(Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado con ID: " + id));
-        usuario.setEstado(false);
-        usuarioRepository.save(usuario);
-        auditoriaService.registrarAccion("ELIMINAR_USUARIO", "Se desactivó el usuario ID: " + id);
+    public JwtResponseDTO login(LoginRequestDTO dto) {
+        Usuario usuario = usuarioRepository.buscarPorEmail(dto.getEmail())
+                .orElseThrow(() -> new CredencialesInvalidasException("Email o contraseña incorrectos"));
+
+        if (!passwordEncoder.matches(dto.getPassword(), usuario.getPasswordHash())) {
+            throw new CredencialesInvalidasException("Email o contraseña incorrectos");
+        }
+
+        String token = jwtUtil.generarToken(usuario.getEmail(), usuario.getRol().getNombre().name());
+
+        return JwtResponseDTO.builder()
+                .token(token)
+                .tipo("Bearer")
+                .usuarioId(usuario.getId())
+                .nombre(usuario.getNombre())
+                .email(usuario.getEmail())
+                .rol(usuario.getRol().getNombre())
+                .build();
     }
 
-    private UsuarioResponseDTO mapearADTO(Usuario u) {
-        UsuarioResponseDTO dto = new UsuarioResponseDTO();
-        dto.setId(u.getId());
-        dto.setNombre(u.getNombres());
-        dto.setApellido(u.getApellidos());
-        dto.setEmail(u.getEmail());
-        dto.setRol(u.getRol() != null ? u.getRol().getNombre().name() : null);
-        dto.setActivo(u.getEstado());
-        return dto;
+    private Usuario buscarEntidadPorId(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el usuario con id " + id));
+    }
+
+    private UsuarioResponseDTO mapearAResponseDTO(Usuario usuario) {
+        return UsuarioResponseDTO.builder()
+                .id(usuario.getId())
+                .nombre(usuario.getNombre())
+                .email(usuario.getEmail())
+                .rol(usuario.getRol().getNombre())
+                .build();
     }
 }

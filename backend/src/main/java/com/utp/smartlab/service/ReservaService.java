@@ -1,94 +1,223 @@
 package com.utp.smartlab.service;
 
+import com.utp.smartlab.dto.ConflictoMetricasDTO;
+import com.utp.smartlab.dto.ReservaMetricasDTO;
 import com.utp.smartlab.dto.ReservaRequestDTO;
 import com.utp.smartlab.dto.ReservaResponseDTO;
 import com.utp.smartlab.entity.Equipo;
+import com.utp.smartlab.entity.EstadoReserva;
 import com.utp.smartlab.entity.Reserva;
 import com.utp.smartlab.entity.Usuario;
-import com.utp.smartlab.exception.EquipoNoDisponibleException;
+import com.utp.smartlab.exception.ConflictoReservaException;
+import com.utp.smartlab.exception.OperacionNoPermitidaException;
 import com.utp.smartlab.exception.RecursoNoEncontradoException;
-import com.utp.smartlab.repository.EquipoRepository;
 import com.utp.smartlab.repository.ReservaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.utp.smartlab.dto.PaginaDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import java.util.Collection;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class ReservaService {
 
-    @Autowired
-    private ReservaRepository reservaRepository;
+    private final ReservaRepository reservaRepository;
+    private final EquipoService equipoService;
+    private final SolicitudRechazadaService solicitudRechazadaService;
+    private final UsuarioActualService usuarioActualService;
 
-    @Autowired
-    private EquipoRepository equipoRepository;
+    public ReservaService(ReservaRepository reservaRepository,
+                           EquipoService equipoService,
+                           SolicitudRechazadaService solicitudRechazadaService,
+                           UsuarioActualService usuarioActualService) {
+        this.reservaRepository = reservaRepository;
+        this.equipoService = equipoService;
+        this.solicitudRechazadaService = solicitudRechazadaService;
+        this.usuarioActualService = usuarioActualService;
+    }
 
-    @Autowired
-    private UsuarioActualService usuarioActualService;
+    @Transactional
+    public ReservaResponseDTO crear(ReservaRequestDTO dto) {
+        return crear(dto, usuarioActualService.obtener());
+    }
 
-    @Autowired
-    private SolicitudRechazadaService solicitudRechazadaService;
+    @Transactional
+    public ReservaResponseDTO crear(ReservaRequestDTO dto, Usuario usuario) {
 
-    @Autowired
-    private AuditoriaService auditoriaService;
+        // Regla de negocio 1: un equipo en mantenimiento no se reserva
+        Equipo equipo = equipoService.validarDisponibleParaReserva(dto.getEquipoId());
 
-    public List<ReservaResponseDTO> listarReservas() {
-        return reservaRepository.findAll().stream().map(this::mapearADTO).collect(Collectors.toList());
+        // Regla de negocio 2: sin reservas superpuestas del mismo equipo
+        validarSinSolapamiento(equipo, dto.getFechaInicio(), dto.getFechaFin());
+
+        Reserva reserva = Reserva.builder()
+                .equipo(equipo)
+                .usuario(usuario)
+                .fechaInicio(dto.getFechaInicio())
+                .fechaFin(dto.getFechaFin())
+                .estado(EstadoReserva.CONFIRMADA)
+                .build();
+
+        Reserva guardada = reservaRepository.save(reserva);
+        return mapearAResponseDTO(guardada);
+    }
+
+    public List<ReservaResponseDTO> listar() {
+        // Regla de negocio: el estudiante solo ve sus reservas
+        List<Reserva> reservas = usuarioActualService.esEstudiante()
+                ? reservaRepository.buscarPorUsuarioId(usuarioActualService.obtener().getId())
+                : reservaRepository.findAll();
+        return reservas.stream()
+                .map(this::mapearAResponseDTO)
+                .toList();
+    }
+
+    // Listado por página. El estudiante solo ve las suyas; el resto puede filtrar por equipo.
+    public PaginaDTO<ReservaResponseDTO> listarPagina(int pagina, int tamanio, EstadoReserva estado, Long equipoId) {
+        Pageable pageable = PaginaDTO.solicitud(pagina, tamanio);
+        Collection<EstadoReserva> estados = estado == null ? List.of(EstadoReserva.values()) : List.of(estado);
+
+        Page<Reserva> resultado;
+        if (usuarioActualService.esEstudiante()) {
+            resultado = reservaRepository.buscarPaginaPorUsuario(usuarioActualService.obtener().getId(), estados, pageable);
+        } else if (equipoId != null) {
+            resultado = reservaRepository.buscarPaginaPorEquipo(equipoId, estados, pageable);
+        } else {
+            resultado = reservaRepository.buscarPagina(estados, pageable);
+        }
+        return PaginaDTO.de(resultado, this::mapearAResponseDTO);
+    }
+
+    // Cola del técnico: reservas confirmadas que ya empezaron o empiezan en las próximas horas (1 a 168, 24 por defecto)
+    public List<ReservaResponseDTO> listarPendientesDeEntrega(int horas) {
+        int horasValidas = Math.min(Math.max(horas, 1), 168);
+        Page<Reserva> resultado = reservaRepository.buscarPendientesDeEntrega(
+                LocalDateTime.now().plusHours(horasValidas), PaginaDTO.solicitud(0, PaginaDTO.TAMANIO_MAXIMO));
+        return resultado.getContent().stream()
+                .map(this::mapearAResponseDTO)
+                .toList();
     }
 
     public ReservaResponseDTO obtenerPorId(Long id) {
-        Reserva reserva = reservaRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Reserva no encontrada con ID: " + id));
-        return mapearADTO(reserva);
+        Reserva reserva = buscarEntidadPorId(id);
+        validarVisibilidadDeEstudiante(reserva);
+        return mapearAResponseDTO(reserva);
     }
 
-    public ReservaResponseDTO crearReserva(ReservaRequestDTO dto) {
-        Usuario usuario = usuarioActualService.obtenerUsuarioActual();
-        Equipo equipo = equipoRepository.findById(dto.getEquipoId())
-                .orElseThrow(() -> new RecursoNoEncontradoException("Equipo no encontrado con ID: " + dto.getEquipoId()));
-
-        boolean ocupado = reservaRepository.findAll().stream().anyMatch(r -> 
-            r.getEquipo() != null && r.getEquipo().getId().equals(equipo.getId()) &&
-            !(r.getFechaFin().isBefore(dto.getFechaInicio()) || r.getFechaInicio().isAfter(dto.getFechaFin()))
-        );
-
-        if (ocupado) {
-            solicitudRechazadaService.registrarRechazo("RESERVA", "Equipo no disponible en el rango de fechas seleccionado", usuario.getId());
-            throw new EquipoNoDisponibleException("El equipo ya se encuentra reservado en el horario indicado.");
+    @Transactional
+    public ReservaResponseDTO cambiarEstado(Long id, EstadoReserva nuevoEstado) {
+        Reserva reserva = buscarEntidadPorId(id);
+        // Regla de negocio: el estudiante solo cancela su reserva CONFIRMADA
+        if (usuarioActualService.esEstudiante()) {
+            validarDueno(reserva);
+            if (nuevoEstado != EstadoReserva.CANCELADA) {
+                throw new OperacionNoPermitidaException(
+                        "Un estudiante solo puede cancelar sus reservas, no cambiarlas a " + nuevoEstado);
+            }
+            if (reserva.getEstado() != EstadoReserva.CONFIRMADA) {
+                throw new OperacionNoPermitidaException(
+                        "Solo se puede cancelar una reserva en estado CONFIRMADA (estado actual: " + reserva.getEstado() + ")");
+            }
         }
 
-        Reserva reserva = new Reserva();
-        reserva.setUsuario(usuario);
-        reserva.setEquipo(equipo);
-        reserva.setFechaInicio(dto.getFechaInicio());
-        reserva.setFechaFin(dto.getFechaFin());
-        reserva.setEstado("PENDIENTE");
+        if (nuevoEstado == EstadoReserva.NO_SHOW) {
+            if (reserva.getEstado() != EstadoReserva.CONFIRMADA) {
+                throw new OperacionNoPermitidaException(
+                        "Solo una reserva CONFIRMADA puede marcarse como NO_SHOW (estado actual: " + reserva.getEstado() + ")");
+            }
+            if (!LocalDateTime.now().isAfter(reserva.getFechaInicio())) {
+                throw new OperacionNoPermitidaException(
+                        "Solo se puede marcar NO_SHOW cuando la reserva ya inició. Si aún no empieza, debe cancelarse");
+            }
+        }
 
-        Reserva guardada = reservaRepository.save(reserva);
-        auditoriaService.registrarAccion("CREAR_RESERVA", "Se creó la reserva ID: " + guardada.getId());
-        return mapearADTO(guardada);
-    }
-
-    public ReservaResponseDTO actualizarEstadoReserva(Long id, String nuevoEstado) {
-        Reserva reserva = reservaRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Reserva no encontrada con ID: " + id));
         reserva.setEstado(nuevoEstado);
-        Reserva actualizada = reservaRepository.save(reserva);
-        auditoriaService.registrarAccion("ACTUALIZAR_RESERVA", "Se actualizó el estado de la reserva ID: " + id + " a " + nuevoEstado);
-        return mapearADTO(actualizada);
+        return mapearAResponseDTO(reservaRepository.save(reserva));
     }
 
-    private ReservaResponseDTO mapearADTO(Reserva r) {
-        ReservaResponseDTO dto = new ReservaResponseDTO();
-        dto.setId(r.getId());
-        dto.setUsuarioId(r.getUsuario() != null ? r.getUsuario().getId() : null);
-        dto.setUsuarioNombre(r.getUsuario() != null ? r.getUsuario().getNombres() + " " + r.getUsuario().getApellidos() : null);
-        dto.setEquipoId(r.getEquipo() != null ? r.getEquipo().getId() : null);
-        dto.setEquipoNombre(r.getEquipo() != null ? r.getEquipo().getNombre() : null);
-        dto.setFechaInicio(r.getFechaInicio());
-        dto.setFechaFin(r.getFechaFin());
-        dto.setEstado(r.getEstado());
-        return dto;
+    // Indicador: tasa de inasistencia (no-show)
+    public ReservaMetricasDTO obtenerMetricas() {
+        long total = reservaRepository.count();
+        long confirmadas = reservaRepository.contarPorEstado(EstadoReserva.CONFIRMADA);
+        long atendidas = reservaRepository.contarPorEstado(EstadoReserva.ATENDIDA);
+        long noShow = reservaRepository.contarPorEstado(EstadoReserva.NO_SHOW);
+        long canceladas = reservaRepository.contarPorEstado(EstadoReserva.CANCELADA);
+
+        // Las confirmadas se conservan: ATENDIDA y NO_SHOW salieron de CONFIRMADA.
+        // Una cancelada ya no forma parte de ese total.
+        long totalConfirmadas = confirmadas + atendidas + noShow;
+        double tasaNoShow = totalConfirmadas == 0 ? 0.0 : (noShow * 100.0) / totalConfirmadas;
+
+        return ReservaMetricasDTO.builder()
+                .total(total)
+                .confirmadas(confirmadas)
+                .atendidas(atendidas)
+                .noShow(noShow)
+                .canceladas(canceladas)
+                .totalConfirmadas(totalConfirmadas)
+                .tasaNoShow(tasaNoShow)
+                .build();
+    }
+
+    // Indicador: tasa de conflicto de reserva
+    public ConflictoMetricasDTO obtenerMetricasConflicto() {
+        long reservasGuardadas = reservaRepository.count();
+        long rechazadas = solicitudRechazadaService.contar();
+        long totalSolicitudes = reservasGuardadas + rechazadas;
+
+        double tasaConflicto = totalSolicitudes == 0 ? 0.0 : (rechazadas * 100.0) / totalSolicitudes;
+
+        return ConflictoMetricasDTO.builder()
+                .totalSolicitudes(totalSolicitudes)
+                .rechazadasPorConflicto(rechazadas)
+                .tasaConflicto(tasaConflicto)
+                .build();
+    }
+
+    private void validarSinSolapamiento(Equipo equipo, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<Reserva> solapadas = reservaRepository.buscarSolapadas(equipo.getId(), fechaInicio, fechaFin);
+
+        if (!solapadas.isEmpty()) {
+            // Indicador: tasa de conflicto de reserva
+            solicitudRechazadaService.registrarIntentoRechazado(equipo.getId(), fechaInicio, fechaFin);
+
+            throw new ConflictoReservaException(
+                    "Ya existe una reserva para el equipo " + equipo.getId() + " que se solapa con el horario solicitado");
+        }
+    }
+
+    private Reserva buscarEntidadPorId(Long id) {
+        return reservaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró la reserva con id " + id));
+    }
+
+    private void validarVisibilidadDeEstudiante(Reserva reserva) {
+        if (usuarioActualService.esEstudiante()) {
+            validarDueno(reserva);
+        }
+    }
+
+    private void validarDueno(Reserva reserva) {
+        Usuario actual = usuarioActualService.obtener();
+        if (reserva.getUsuario() == null || !actual.getId().equals(reserva.getUsuario().getId())) {
+            throw new OperacionNoPermitidaException("Solo puedes consultar o cancelar tus propias reservas");
+        }
+    }
+
+    private ReservaResponseDTO mapearAResponseDTO(Reserva reserva) {
+        return ReservaResponseDTO.builder()
+                .id(reserva.getId())
+                .equipoId(reserva.getEquipo().getId())
+                .usuarioId(reserva.getUsuario().getId())
+                .usuarioNombre(reserva.getUsuario().getNombre())
+                .fechaInicio(reserva.getFechaInicio())
+                .fechaFin(reserva.getFechaFin())
+                .estado(reserva.getEstado())
+                .build();
     }
 }

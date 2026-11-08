@@ -1,8 +1,18 @@
 package com.utp.smartlab.dto;
-import lombok.Data;
 
-@Data
+import com.utp.smartlab.entity.EstadoIncidencia;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class IncidenciaEstadoUpdateDTO {
-    private String estado;
-    private String observaciones;
+
+    @NotNull(message = "El nuevo estado es obligatorio")
+    private EstadoIncidencia estado;
 }

@@ -1,10 +1,23 @@
 package com.utp.smartlab.dto;
-import lombok.Data;
 
-@Data
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class EquipoRecomendacionDTO {
-    private Long id;
+
+    private Long equipoId;
     private String nombre;
-    private String codigo;
+    private Integer contadorUsoHoras;
+    private LocalDateTime fechaProgramada;
     private String motivo;
 }

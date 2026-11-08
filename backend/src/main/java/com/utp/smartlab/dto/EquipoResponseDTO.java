@@ -1,12 +1,24 @@
 package com.utp.smartlab.dto;
-import lombok.Data;
 
-@Data
+import com.utp.smartlab.entity.EstadoEquipo;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class EquipoResponseDTO {
+
     private Long id;
-    private String codigo;
     private String nombre;
-    private String descripcion;
+    private Long categoriaId;
     private String categoriaNombre;
-    private String estadoEquipoNombre;
+    private String ubicacion;
+    private EstadoEquipo estado;
+    private Integer contadorUsoHoras;
 }
