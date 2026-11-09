@@ -4,10 +4,6 @@
 .layout {
   display: flex;
   min-height: 100vh;
-
-  @include movil {
-    flex-direction: column;
-  }
 }
 
 .sidebar {
@@ -22,12 +18,37 @@
   height: 100vh;
   overflow-y: auto;
 
+  // En móvil es un panel lateral oculto que se abre con el botón ☰
   @include movil {
-    width: 100%;
-    padding: 0.7rem;
-    position: static;
-    height: auto;
-    overflow-y: visible;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 80vw;
+    z-index: 30;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+}
+
+.fondo-menu {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 20;
+}
+
+.layout.menu-abierto {
+  @include movil {
+    .sidebar {
+      transform: translateX(0);
+    }
+
+    .fondo-menu {
+      display: block;
+    }
   }
 }
 
@@ -51,11 +72,6 @@ nav {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-
-  @include movil {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
 
   a {
     color: #dbeafe;
@@ -88,13 +104,23 @@ nav {
   z-index: 10;
   display: flex;
   justify-content: flex-end;
-  display: flex;
-  justify-content: flex-end;
   align-items: center;
   gap: 1rem;
   padding: 0.7rem 1.4rem;
   background: $color-superficie;
   border-bottom: 1px solid $color-borde;
+}
+
+// Botón ☰: solo existe en móvil; el margen automático lo deja a la izquierda
+.btn-menu {
+  display: none;
+  margin-right: auto;
+  font-size: 1.1rem;
+  line-height: 1;
+
+  @include movil {
+    display: inline-flex;
+  }
 }
 
 .usuario {
