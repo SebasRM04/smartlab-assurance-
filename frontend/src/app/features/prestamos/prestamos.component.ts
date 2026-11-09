@@ -12,14 +12,17 @@ import { aIso, enHoras, fechaFutura } from '../../core/utils/fechas';
 import { EstadoBadgeComponent } from '../../shared/components/estado-badge.component';
 import { FieldErrorComponent } from '../../shared/components/field-error.component';
 import { PaginadorComponent } from '../../shared/components/paginador.component';
+import { BotonActualizarComponent } from '../../shared/components/boton-actualizar.component';
+import { FiltroFechasComponent, RangoFecha } from '../../shared/components/filtro-fechas.component';
 
 @Component({
   selector: 'app-prestamos',
   standalone: true,
-  imports: [DatePipe, ReactiveFormsModule, EstadoBadgeComponent, FieldErrorComponent, PaginadorComponent],
+  imports: [BotonActualizarComponent, DatePipe, ReactiveFormsModule, EstadoBadgeComponent, FieldErrorComponent, PaginadorComponent, FiltroFechasComponent],
   template: `
     <div class="page-header">
       <div><h1>Préstamos</h1><p>Entrega y devolución de equipos</p></div>
+      <app-boton-actualizar (actualizar)="actualizar()" />
     </div>
 
     @if (puedeOperar) {
@@ -70,6 +73,10 @@ import { PaginadorComponent } from '../../shared/components/paginador.component'
             <option value="ACTIVO">ACTIVO</option>
             <option value="DEVUELTO">DEVUELTO</option>
           </select>
+          <app-filtro-fechas #fechas etiqueta="Entrega" (cambio)="cambiarFechas($event)" />
+          @if (estadoFiltro() || fechas.activo) {
+            <button class="btn btn-sm" type="button" (click)="sel.value = ''; fechas.limpiar(); cambiarEstado('')">Limpiar filtros</button>
+          }
         </div>
       }
 
@@ -133,6 +140,9 @@ export class PrestamosComponent implements OnInit {
   resultado = signal<PaginaApi<Prestamo> | null>(null);
   numeroPagina = signal(0);
   estadoFiltro = signal<EstadoPrestamo | ''>('');
+  desde = signal('');
+  hasta = signal('');
+  rangoInvalido = signal(false);
   vencidos = signal<Prestamo[]>([]);
   totalVencidos = signal(0);
   pendientes = signal<Reserva[]>([]);
@@ -153,6 +163,13 @@ export class PrestamosComponent implements OnInit {
     this.cargarPrestamos();
   }
 
+  /** Vuelve a consultar la cola de entregas, los vencidos y la lista activa (todos o vencidos). */
+  actualizar(): void {
+    if (this.puedeOperar) this.cargarPendientes();
+    this.equiposApi.listar().subscribe({ next: (l) => this.equipos.set(l), error: (e) => this.avisos.error(e) });
+    this.cargarPrestamos();
+  }
+
   nombreEquipo(id: number): string {
     return this.equipos().find((e) => e.id === id)?.nombre ?? `Equipo #${id}`;
   }
@@ -166,6 +183,14 @@ export class PrestamosComponent implements OnInit {
     this.estadoFiltro.set(valor as EstadoPrestamo | '');
     this.numeroPagina.set(0);
     this.cargarPagina();
+  }
+
+  cambiarFechas(rango: RangoFecha): void {
+    this.desde.set(rango.desde);
+    this.hasta.set(rango.hasta);
+    this.rangoInvalido.set(!!rango.desde && !!rango.hasta && rango.desde > rango.hasta);
+    this.numeroPagina.set(0);
+    if (!this.rangoInvalido()) this.cargarPagina();
   }
 
   irAPagina(pagina: number): void {
@@ -243,7 +268,8 @@ export class PrestamosComponent implements OnInit {
   }
 
   private cargarPagina(): void {
-    this.prestamosApi.pagina(this.numeroPagina(), this.tamanioPagina, this.estadoFiltro()).subscribe({
+    if (this.rangoInvalido()) return;
+    this.prestamosApi.pagina(this.numeroPagina(), this.tamanioPagina, this.estadoFiltro(), this.desde(), this.hasta()).subscribe({
       next: (p) => {
         if (p.contenido.length === 0 && p.pagina > 0) {
           this.numeroPagina.set(Math.max(p.totalPaginas - 1, 0));

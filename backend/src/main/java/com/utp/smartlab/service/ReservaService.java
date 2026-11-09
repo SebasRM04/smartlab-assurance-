@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.Collection;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -77,18 +78,29 @@ public class ReservaService {
                 .toList();
     }
 
-    // Listado por página. El estudiante solo ve las suyas; el resto puede filtrar por equipo.
-    public PaginaDTO<ReservaResponseDTO> listarPagina(int pagina, int tamanio, EstadoReserva estado, Long equipoId) {
+    // Listado por página. El estudiante solo ve las suyas (ignora usuarioId); el personal puede filtrar
+    // por equipo y, si el rol lo permite (lo valida el controller), por usuario, solos o combinados.
+    public PaginaDTO<ReservaResponseDTO> listarPagina(int pagina, int tamanio, EstadoReserva estado,
+                                                      Long equipoId, Long usuarioId,
+                                                      LocalDate desde, LocalDate hasta) {
+        RangoFechas.validar(desde, hasta);
         Pageable pageable = PaginaDTO.solicitud(pagina, tamanio);
         Collection<EstadoReserva> estados = estado == null ? List.of(EstadoReserva.values()) : List.of(estado);
+        LocalDateTime ini = RangoFechas.inicio(desde);
+        LocalDateTime fin = RangoFechas.fin(hasta);
 
         Page<Reserva> resultado;
         if (usuarioActualService.esEstudiante()) {
-            resultado = reservaRepository.buscarPaginaPorUsuario(usuarioActualService.obtener().getId(), estados, pageable);
+            resultado = reservaRepository.buscarPaginaPorUsuario(
+                    usuarioActualService.obtener().getId(), estados, ini, fin, pageable);
+        } else if (equipoId != null && usuarioId != null) {
+            resultado = reservaRepository.buscarPaginaPorEquipoYUsuario(equipoId, usuarioId, estados, ini, fin, pageable);
         } else if (equipoId != null) {
-            resultado = reservaRepository.buscarPaginaPorEquipo(equipoId, estados, pageable);
+            resultado = reservaRepository.buscarPaginaPorEquipo(equipoId, estados, ini, fin, pageable);
+        } else if (usuarioId != null) {
+            resultado = reservaRepository.buscarPaginaPorUsuario(usuarioId, estados, ini, fin, pageable);
         } else {
-            resultado = reservaRepository.buscarPagina(estados, pageable);
+            resultado = reservaRepository.buscarPagina(estados, ini, fin, pageable);
         }
         return PaginaDTO.de(resultado, this::mapearAResponseDTO);
     }

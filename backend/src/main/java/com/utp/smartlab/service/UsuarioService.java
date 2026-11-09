@@ -2,6 +2,7 @@ package com.utp.smartlab.service;
 
 import com.utp.smartlab.dto.JwtResponseDTO;
 import com.utp.smartlab.dto.LoginRequestDTO;
+import com.utp.smartlab.dto.UsuarioOpcionDTO;
 import com.utp.smartlab.dto.UsuarioRequestDTO;
 import com.utp.smartlab.dto.UsuarioResponseDTO;
 import com.utp.smartlab.dto.UsuarioUpdateDTO;
@@ -15,6 +16,7 @@ import com.utp.smartlab.repository.AuditoriaRepository;
 import com.utp.smartlab.repository.RolRepository;
 import com.utp.smartlab.repository.UsuarioRepository;
 import com.utp.smartlab.security.JwtUtil;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,6 +68,13 @@ public class UsuarioService {
     public List<UsuarioResponseDTO> listar() {
         return usuarioRepository.findAll().stream()
                 .map(this::mapearAResponseDTO)
+                .toList();
+    }
+
+    // Solo id y nombre, ordenados por nombre: alimenta el filtro "por usuario" de las reservas
+    public List<UsuarioOpcionDTO> listarOpciones() {
+        return usuarioRepository.findAll(Sort.by("nombre")).stream()
+                .map(u -> new UsuarioOpcionDTO(u.getId(), u.getNombre()))
                 .toList();
     }
 

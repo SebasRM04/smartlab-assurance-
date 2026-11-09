@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -62,8 +63,10 @@ public class MantenimientoController {
             @RequestParam(defaultValue = "20") int tamanio,
             @RequestParam(required = false) EstadoMantenimiento estado,
             @RequestParam(required = false) TipoMantenimiento tipo,
-            @RequestParam(required = false) Long equipoId) {
-        return ResponseEntity.ok(mantenimientoService.listarPagina(pagina, tamanio, estado, tipo, equipoId));
+            @RequestParam(required = false) Long equipoId,
+            @RequestParam(required = false) LocalDate desde,
+            @RequestParam(required = false) LocalDate hasta) {
+        return ResponseEntity.ok(mantenimientoService.listarPagina(pagina, tamanio, estado, tipo, equipoId, desde, hasta));
     }
 
     @GetMapping("/{id}")

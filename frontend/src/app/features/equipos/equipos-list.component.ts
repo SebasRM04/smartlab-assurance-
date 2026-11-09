@@ -8,17 +8,21 @@ import { NotificationService } from '../../core/services/notification.service';
 import { paginaValida, rebanar, totalPaginasDe } from '../../core/utils/paginacion';
 import { EstadoBadgeComponent } from '../../shared/components/estado-badge.component';
 import { PaginadorComponent } from '../../shared/components/paginador.component';
+import { BotonActualizarComponent } from '../../shared/components/boton-actualizar.component';
 
 @Component({
   selector: 'app-equipos-list',
   standalone: true,
-  imports: [RouterLink, EstadoBadgeComponent, PaginadorComponent],
+  imports: [BotonActualizarComponent, RouterLink, EstadoBadgeComponent, PaginadorComponent],
   template: `
     <div class="page-header">
       <div><h1>Equipos</h1><p>Catálogo de equipos del laboratorio</p></div>
-      @if (puedeCrear) {
-        <a class="btn btn-primary" routerLink="/equipos/nuevo">Nuevo equipo</a>
-      }
+      <div class="toolbar">
+        <app-boton-actualizar (actualizar)="cargar()" />
+        @if (puedeCrear) {
+          <a class="btn btn-primary" routerLink="/equipos/nuevo">Nuevo equipo</a>
+        }
+      </div>
     </div>
 
     <div class="card">
@@ -107,6 +111,10 @@ export class EquiposListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.cargar();
+  }
+
+  cargar(): void {
     this.equiposApi.listar().subscribe({
       next: (lista) => {
         this.equipos.set(lista);

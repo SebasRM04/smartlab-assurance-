@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -223,6 +224,48 @@ class PaginacionControllerTest {
         JsonNode todos = obtener("/api/prestamos/pagina", token);
         assertTrue(todos.get("totalElementos").asLong() >= activos.get("totalElementos").asLong(),
                 "sin filtro hay al menos tantos como los activos");
+    }
+
+    @Test
+    void filtroPorFecha_reservaPrestamoYMantenimiento_yRangoInvertido() throws Exception {
+        long equipoId = api.crearEquipo(token, "Equipo filtro fecha", categoriaId, "Lab F");
+        long reservaCerca = reservar(token, equipoId, 2);
+        reservar(token, equipoId, 40);
+        String desde = LocalDate.now().plusDays(1).toString();
+        String hasta = LocalDate.now().plusDays(3).toString();
+        JsonNode pagina = obtener(
+                "/api/reservas/pagina?equipoId=" + equipoId + "&desde=" + desde + "&hasta=" + hasta + "&tamanio=50",
+                token);
+        assertEquals(1, pagina.get("totalElementos").asInt(), "solo la reserva que inicia dentro del rango");
+        assertEquals(reservaCerca, pagina.get("contenido").get(0).get("id").asLong());
+
+        mockMvc.perform(api.auth(get("/api/reservas/pagina?desde=2026-12-31&hasta=2026-01-01"), token))
+                .andExpect(status().isBadRequest());
+
+        PrestamoCheckoutRequestDTO dto = new PrestamoCheckoutRequestDTO(reservaCerca, LocalDateTime.now().plusDays(5));
+        mockMvc.perform(api.auth(post("/api/prestamos/checkout"), token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isCreated());
+        String hoy = LocalDate.now().toString();
+        JsonNode prestamosHoy = obtener("/api/prestamos/pagina?desde=" + hoy + "&hasta=" + hoy + "&tamanio=50", token);
+        assertTrue(prestamosHoy.get("totalElementos").asLong() >= 1, "el prestamo entregado hoy entra en el rango");
+        JsonNode ayer = obtener("/api/prestamos/pagina?desde=2099-01-01&hasta=2099-01-02", token);
+        assertEquals(0, ayer.get("totalElementos").asInt(), "un rango futuro lejano no incluye la entrega de hoy");
+
+        MantenimientoRequestDTO mant = new MantenimientoRequestDTO(
+                equipoId, TipoMantenimiento.PREVENTIVO, LocalDateTime.now().plusDays(8).withSecond(0).withNano(0));
+        mockMvc.perform(api.auth(post("/api/mantenimientos"), token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(mant)))
+                .andExpect(status().isCreated());
+        String d2 = LocalDate.now().plusDays(7).toString();
+        String h2 = LocalDate.now().plusDays(9).toString();
+        JsonNode mants = obtener(
+                "/api/mantenimientos/pagina?equipoId=" + equipoId + "&desde=" + d2 + "&hasta=" + h2, token);
+        assertEquals(1, mants.get("totalElementos").asInt(), "el mantenimiento programado cae en el rango");
+        mockMvc.perform(api.auth(get("/api/mantenimientos/pagina?desde=2026-05-02&hasta=2026-05-01"), token))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

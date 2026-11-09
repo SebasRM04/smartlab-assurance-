@@ -21,6 +21,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -292,5 +294,40 @@ class ReservaServiceTest {
         assertThat(resultado.getTotalSolicitudes()).isEqualTo(10L);
         assertThat(resultado.getRechazadasPorConflicto()).isEqualTo(2L);
         assertThat(resultado.getTasaConflicto()).isEqualTo(20.0);
+    }
+
+    @Test
+    void listarPagina_delPersonalConUsuarioId_filtraPorEseUsuario() {
+        when(usuarioActualService.esEstudiante()).thenReturn(false);
+        when(reservaRepository.buscarPaginaPorUsuario(eq(7L), any(), any(), any(), any(Pageable.class))).thenReturn(Page.empty());
+
+        reservaService.listarPagina(0, 20, null, null, 7L, null, null);
+
+        verify(reservaRepository).buscarPaginaPorUsuario(eq(7L), any(), any(), any(), any(Pageable.class));
+        verify(reservaRepository, never()).buscarPagina(any(), any(), any(), any(Pageable.class));
+    }
+
+    @Test
+    void listarPagina_delPersonalConUsuarioIdYEquipoId_combinaAmbosFiltros() {
+        when(usuarioActualService.esEstudiante()).thenReturn(false);
+        when(reservaRepository.buscarPaginaPorEquipoYUsuario(eq(3L), eq(7L), any(), any(), any(), any(Pageable.class)))
+                .thenReturn(Page.empty());
+
+        reservaService.listarPagina(0, 20, EstadoReserva.CONFIRMADA, 3L, 7L, null, null);
+
+        verify(reservaRepository).buscarPaginaPorEquipoYUsuario(eq(3L), eq(7L), any(), any(), any(), any(Pageable.class));
+        verify(reservaRepository, never()).buscarPaginaPorEquipo(any(), any(), any(), any(), any(Pageable.class));
+        verify(reservaRepository, never()).buscarPaginaPorUsuario(any(), any(), any(), any(), any(Pageable.class));
+    }
+
+    @Test
+    void listarPagina_delEstudiante_ignoraElUsuarioIdYUsaElSuyo() {
+        when(usuarioActualService.esEstudiante()).thenReturn(true);
+        when(reservaRepository.buscarPaginaPorUsuario(eq(1L), any(), any(), any(), any(Pageable.class))).thenReturn(Page.empty());
+
+        reservaService.listarPagina(0, 20, null, null, 99L, null, null);
+
+        verify(reservaRepository).buscarPaginaPorUsuario(eq(1L), any(), any(), any(), any(Pageable.class));
+        verify(reservaRepository, never()).buscarPaginaPorUsuario(eq(99L), any(), any(), any(), any(Pageable.class));
     }
 }

@@ -10,6 +10,8 @@ export const PERMISOS = {
   categoriasVer: ['COORDINADOR', 'ADMINISTRADOR'] as Rol[],
   reservaCrear: ['ESTUDIANTE', 'DOCENTE', 'COORDINADOR', 'ADMINISTRADOR'] as Rol[],
   reservaNoShow: PERSONAL,
+  // Filtro de reservas por usuario: lo valida el backend (403 con otro rol) y necesita /usuarios/opciones
+  reservaFiltrarPorUsuario: ['TECNICO', 'COORDINADOR', 'ADMINISTRADOR'] as Rol[],
   prestamoVer: PERSONAL,
   prestamoOperar: ['TECNICO', 'COORDINADOR', 'ADMINISTRADOR'] as Rol[],
   mantenimientoVer: PERSONAL,

@@ -13,8 +13,10 @@ import com.utp.smartlab.entity.EstadoReserva;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -46,14 +48,19 @@ public class ReservaController {
         return ResponseEntity.ok(reservaService.listar());
     }
 
+    // Cualquier usuario autenticado lista (el estudiante solo ve las suyas). El filtro por usuario
+    // (usuarioId) solo lo pueden usar técnico, coordinador y administrador: con otro rol responde 403.
     @GetMapping("/pagina")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and (#usuarioId == null or hasAnyRole('TECNICO', 'COORDINADOR', 'ADMINISTRADOR'))")
     public ResponseEntity<PaginaDTO<ReservaResponseDTO>> listarPagina(
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "20") int tamanio,
             @RequestParam(required = false) EstadoReserva estado,
-            @RequestParam(required = false) Long equipoId) {
-        return ResponseEntity.ok(reservaService.listarPagina(pagina, tamanio, estado, equipoId));
+            @RequestParam(required = false) Long equipoId,
+            @P("usuarioId") @RequestParam(required = false) Long usuarioId,
+            @RequestParam(required = false) LocalDate desde,
+            @RequestParam(required = false) LocalDate hasta) {
+        return ResponseEntity.ok(reservaService.listarPagina(pagina, tamanio, estado, equipoId, usuarioId, desde, hasta));
     }
 
     @GetMapping("/pendientes-entrega")
