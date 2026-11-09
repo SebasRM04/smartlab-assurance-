@@ -52,4 +52,5 @@ Requiere la carga masiva (activa por defecto la primera vez que arranca el backe
 5. Entra como `estudiante05@smartlab.com` (`Demo123!`): en Reservas solo ve las suyas (unas cien).
 6. En el Panel, la tabla de utilización está ordenada por horas de uso: arriba están los sobreutilizados (unos 35) y los equipos sin ningún préstamo quedan al final como subutilizados.
 7. Como técnico, abre Reservas, filtra por `CONFIRMADA` y revisa las que empezaron hace menos de 48 horas: son las que se pueden marcar `NO_SHOW` o convertir en préstamo.
+8. Como técnico, coordinador o administrador, en Reservas elige un nombre en *Todos los usuarios*: la tabla muestra solo las reservas de esa persona y el total cambia. Combínalo con un equipo o un estado y pulsa *Limpiar filtros*. Con un docente o un estudiante ese selector no aparece.
 
