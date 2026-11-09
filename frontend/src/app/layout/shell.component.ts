@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal  } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { PERMISOS } from '../core/permisos';
 import { Rol } from '../core/models/api.models';
@@ -28,18 +28,22 @@ const MENU: ItemMenu[] = [
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   template: `
-    <div class="layout">
+    <div class="layout" [class.menu-abierto]="menuAbierto()">
       <aside class="sidebar">
-        <a class="marca" routerLink="/dashboard">SmartLab<span>Assurance</span></a>
-        <nav>
+        <a class="marca" routerLink="/dashboard" (click)="cerrarMenu()">SmartLab<span>Assurance</span></a>
+        <nav (click)="cerrarMenu()">
           @for (item of visibles(); track item.ruta) {
             <a [routerLink]="item.ruta" routerLinkActive="activo">{{ item.etiqueta }}</a>
           }
         </nav>
       </aside>
 
+      <div class="fondo-menu" (click)="cerrarMenu()"></div>
+
       <div class="contenido">
         <header class="topbar">
+          <button class="btn btn-sm btn-menu" type="button" aria-label="Abrir menú"
+            [attr.aria-expanded]="menuAbierto()" (click)="alternarMenu()">☰</button>
           <div class="usuario">
             <strong>{{ auth.nombre() }}</strong>
             <span class="rol">{{ auth.rol() }}</span>
@@ -57,4 +61,13 @@ const MENU: ItemMenu[] = [
 export class ShellComponent {
   auth = inject(AuthService);
   visibles = computed(() => MENU.filter((i) => !i.roles || this.auth.tieneRol(i.roles)));
+  menuAbierto = signal(false);
+
+  alternarMenu(): void {
+    this.menuAbierto.update((v) => !v);
+  }
+
+  cerrarMenu(): void {
+    this.menuAbierto.set(false);
+  }
 }

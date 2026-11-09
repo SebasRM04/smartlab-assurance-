@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component,ElementRef, OnInit,ViewChild, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Categoria } from '../../core/models/api.models';
 import { CategoriaService } from '../../core/services/categoria.service';
@@ -14,7 +14,7 @@ import { FieldErrorComponent } from '../../shared/components/field-error.compone
       <div><h1>Categorías</h1><p>Clasificación de los equipos del laboratorio</p></div>
     </div>
 
-    <section class="card">
+    <section class="card" #formulario>
       <h3>{{ editandoId() ? 'Editar categoría #' + editandoId() : 'Nueva categoría' }}</h3>
       <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
         <div class="toolbar">
@@ -57,6 +57,8 @@ export class CategoriasComponent implements OnInit {
   categorias = signal<Categoria[]>([]);
   editandoId = signal<number | null>(null);
 
+  @ViewChild('formulario') formulario?: ElementRef<HTMLElement>;
+
   form = this.fb.nonNullable.group({
     nombre: ['', [Validators.required, Validators.maxLength(80)]],
   });
@@ -68,6 +70,12 @@ export class CategoriasComponent implements OnInit {
   editar(c: Categoria): void {
     this.editandoId.set(c.id);
     this.form.reset({ nombre: c.nombre });
+    this.irAlFormulario();
+  }
+
+  private irAlFormulario(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.formulario?.nativeElement.querySelector('input')?.focus({ preventScroll: true });
   }
 
   cancelar(): void {
