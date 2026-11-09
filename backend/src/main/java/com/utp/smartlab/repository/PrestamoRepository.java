@@ -59,9 +59,18 @@ public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
            SELECT p FROM Prestamo p
            JOIN FETCH p.reserva
            WHERE p.estado IN :estados
+             AND p.fechaEntrega >= :desde
+             AND p.fechaEntrega <= :hasta
            ORDER BY p.fechaEntrega DESC, p.id DESC
            """,
-           countQuery = "SELECT COUNT(p) FROM Prestamo p WHERE p.estado IN :estados")
+           countQuery = """
+           SELECT COUNT(p) FROM Prestamo p
+           WHERE p.estado IN :estados
+             AND p.fechaEntrega >= :desde
+             AND p.fechaEntrega <= :hasta
+           """)
     Page<Prestamo> buscarPagina(@Param("estados") Collection<com.utp.smartlab.entity.EstadoPrestamo> estados,
+                                @Param("desde") java.time.LocalDateTime desde,
+                                @Param("hasta") java.time.LocalDateTime hasta,
                                 Pageable pageable);
 }

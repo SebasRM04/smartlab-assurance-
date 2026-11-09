@@ -36,12 +36,27 @@ La base de prueba trae miles de registros, así que ninguna pantalla pide todo d
 
 | Pantalla | Cómo se pagina |
 |---|---|
-| Reservas | En el servidor: `GET /api/reservas/pagina` (15 por página) con filtro por estado |
+| Reservas | En el servidor: `GET /api/reservas/pagina` (15 por página) con filtros por estado, equipo y usuario |
 | Préstamos | En el servidor: `GET /api/prestamos/pagina` (15 por página) con filtro por estado; la pestaña *Vencidos* usa `/vencidos` |
 | Mantenimientos | En el servidor: `GET /api/mantenimientos/pagina` (15 por página) con filtros por estado y tipo |
 | Equipos (180), Panel (utilización), Incidencias y Auditoría | En el navegador: la lista llega completa y se muestra por páginas con `core/utils/paginacion.ts` |
 
 `PaginadorComponent` (`shared/components/paginador.component.ts`) es el control de páginas de todas: recibe la página por `@Input` y avisa con `@Output` (`cambio`).
+
+`BotonActualizarComponent` (`shared/components/boton-actualizar.component.ts`) es el botón **Actualizar** del encabezado de cada pantalla (equipos, reservas, préstamos, mantenimientos, incidencias, usuarios, auditoría y panel). No consulta nada por sí mismo: emite `(actualizar)` y el padre vuelve a pedir sus datos a la API, respetando el filtro y la página activos. Como la aplicación no se actualiza sola, sirve para ver lo que otras personas registraron.
+
+**Filtros de las tablas.** Cada pantalla con una tabla grande o difícil de recorrer tiene sus filtros, todos con un botón *Limpiar filtros*:
+
+| Pantalla | Filtros | Dónde se filtra |
+|---|---|---|
+| Reservas | estado, equipo y usuario. El equipo lo ve todo el personal; el **usuario** solo técnico, coordinador y administrador (el selector se llena con `GET /api/usuarios/opciones`, que devuelve solo id y nombre). El estudiante solo ve sus reservas y no tiene ninguno de los dos | Servidor |
+| Mantenimientos | estado, tipo y equipo | Servidor |
+| Incidencias | texto (equipo, usuario o descripción), estado y equipo | Navegador |
+| Usuarios | texto (nombre o correo) y rol | Navegador |
+| Auditoría | acción, texto y, como antes, ID de usuario | Navegador (el ID de usuario consulta al servidor) |
+| Panel (utilización) | clasificación y nombre del equipo | Navegador |
+
+Las tablas con miles de filas (reservas y mantenimientos) filtran **en el servidor**: el filtro viaja como parámetro de la consulta y se aplica a toda la tabla, no solo a la página visible. Las listas que llegan completas se filtran **en el navegador** con `computed` sobre la lista cargada, así que el filtro se vuelve a aplicar solo cada vez que la lista se recarga (por ejemplo, con *Actualizar*).
 
 El formulario de **Préstamos** ya no baja todas las reservas para elegir una: usa `GET /api/reservas/pendientes-entrega` (las confirmadas que ya empezaron o empiezan en las próximas 72 horas). Si llegas desde *Iniciar préstamo* con una reserva que está más lejos en el tiempo, se agrega a la lista.
 
@@ -51,7 +66,7 @@ El formulario de **Préstamos** ya no baja todas las reservas para elegir una: u
 |---|---|
 | Componentes + SASS | `src/app/**` (componentes standalone) y `src/styles/` (variables, mixins, base, componentes) más un `.scss` por componente que lo necesita |
 | Rutas | `app.routes.ts`: carga perezosa (`loadComponent`), rutas hijas dentro del layout y parámetros (`/equipos/:id`) |
-| Comunicación entre componentes | `@Input`/`@Output`: `EquipoForm` y `ReservaForm` emiten al padre; `StatCard`, `EstadoBadge`, `FieldError` y `Paginador` reciben datos. Los parámetros de ruta y query llegan como `@Input` |
+| Comunicación entre componentes | `@Input`/`@Output`: `EquipoForm` y `ReservaForm` emiten al padre; `StatCard`, `EstadoBadge`, `FieldError` y `Paginador` reciben datos; `BotonActualizar` emite `(actualizar)` al padre. Los parámetros de ruta y query llegan como `@Input` |
 | Formularios | Reactive Forms en login, registro, equipos, reservas, préstamos, mantenimientos, incidencias, usuarios y categorías |
 | Validación y manejo de errores | Validadores (`required`, `email`, `minlength`, fecha futura, rango de fechas), `FieldErrorComponent`, `mensajeDeError()` que lee el `ErrorResponse` del backend y avisos (toast) |
 | Consumo REST | `core/services/*.service.ts` con `HttpClient`, un servicio por recurso del API, con listados paginados (`HttpParams`) |
@@ -75,7 +90,7 @@ src/
     │   ├── interceptors/              auth (Bearer) y errores (401)
     │   ├── guards/                    authGuard, rolGuard, invitadoGuard
     │   └── utils/                     mensajes de error y utilidades de fechas/validadores
-    ├── shared/components/             toast, field-error, estado-badge, stat-card
+    ├── shared/components/             toast, field-error, estado-badge, stat-card, paginador, boton-actualizar
     ├── layout/shell.component.*       menú lateral por rol + cabecera
     └── features/
         ├── auth/                      login, registro, sin-permiso

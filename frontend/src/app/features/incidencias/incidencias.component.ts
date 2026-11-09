@@ -12,14 +12,17 @@ import { EstadoBadgeComponent } from '../../shared/components/estado-badge.compo
 import { paginaValida, rebanar, totalPaginasDe } from '../../core/utils/paginacion';
 import { FieldErrorComponent } from '../../shared/components/field-error.component';
 import { PaginadorComponent } from '../../shared/components/paginador.component';
+import { BotonActualizarComponent } from '../../shared/components/boton-actualizar.component';
+import { FiltroFechasComponent, RangoFecha } from '../../shared/components/filtro-fechas.component';
 
 @Component({
   selector: 'app-incidencias',
   standalone: true,
-  imports: [DatePipe, ReactiveFormsModule, RouterLink, EstadoBadgeComponent, FieldErrorComponent, PaginadorComponent],
+  imports: [BotonActualizarComponent, DatePipe, ReactiveFormsModule, RouterLink, EstadoBadgeComponent, FieldErrorComponent, PaginadorComponent, FiltroFechasComponent],
   template: `
     <div class="page-header">
       <div><h1>Incidencias</h1><p>Reporta fallas o daños de un equipo</p></div>
+      <app-boton-actualizar (actualizar)="actualizar()" />
     </div>
 
     <section class="card">
@@ -55,6 +58,22 @@ import { PaginadorComponent } from '../../shared/components/paginador.component'
 
     @if (puedeVer) {
       <section class="card">
+        <div class="toolbar">
+          <input type="search" placeholder="Buscar por equipo, usuario o descripción" style="min-width: 260px"
+            [value]="busqueda()" (input)="buscar($any($event.target).value)" />
+          <select [value]="estadoSel()" (change)="elegirEstado($any($event.target).value)" aria-label="Filtrar por estado">
+            <option value="">Todos los estados</option>
+            @for (e of estados; track e) { <option [value]="e">{{ e }}</option> }
+          </select>
+          <select [value]="equipoSel()" (change)="elegirEquipo($any($event.target).value)" aria-label="Filtrar por equipo">
+            <option value="">Todos los equipos</option>
+            @for (e of equiposOrdenados(); track e.id) { <option [value]="e.id">{{ e.nombre }}</option> }
+          </select>
+          <app-filtro-fechas #fechas etiqueta="Registro" (cambio)="cambiarFechas($event)" />
+          @if (hayFiltros() || fechas.activo) {
+            <button class="btn btn-sm" type="button" (click)="fechas.limpiar(); limpiarFiltros()">Limpiar filtros</button>
+          }
+        </div>
         <div class="table-wrap">
           <table class="table">
             <thead><tr><th>#</th><th>Equipo</th><th>Fecha</th><th>Reportada por</th><th>Descripción</th><th>Estado</th><th></th></tr></thead>
@@ -80,7 +99,7 @@ import { PaginadorComponent } from '../../shared/components/paginador.component'
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="7" class="vacio">No hay incidencias registradas</td></tr>
+                <tr><td colspan="7" class="vacio">{{ hayFiltros() ? 'No hay incidencias que coincidan con los filtros' : 'No hay incidencias registradas' }}</td></tr>
               }
             </tbody>
           </table>
@@ -88,7 +107,7 @@ import { PaginadorComponent } from '../../shared/components/paginador.component'
         <app-paginador
           [pagina]="paginaActual()"
           [totalPaginas]="totalPaginas()"
-          [totalElementos]="incidencias().length"
+          [totalElementos]="filtradas().length"
           [tamanio]="tamanioPagina"
           (cambio)="pagina.set($event)"
         />
@@ -111,10 +130,39 @@ export class IncidenciasComponent implements OnInit {
   readonly tamanioPagina = 15;
   incidencias = signal<Incidencia[]>([]);
   pagina = signal(0);
-  totalPaginas = computed(() => totalPaginasDe(this.incidencias().length, this.tamanioPagina));
-  paginaActual = computed(() => paginaValida(this.pagina(), this.incidencias().length, this.tamanioPagina));
-  visibles = computed(() => rebanar(this.incidencias(), this.pagina(), this.tamanioPagina));
   equipos = signal<Equipo[]>([]);
+
+  // Filtros del navegador: se aplican sobre la lista ya cargada y se recalculan solos al recargarla
+  readonly estados: EstadoIncidencia[] = ['ABIERTA', 'EN_REVISION', 'RESUELTA'];
+  busqueda = signal('');
+  estadoSel = signal('');
+  equipoSel = signal('');
+  equiposOrdenados = computed(() => [...this.equipos()].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+  desde = signal('');
+  hasta = signal('');
+  hayFiltros = computed(() => this.busqueda().trim() !== '' || this.estadoSel() !== '' || this.equipoSel() !== '' || this.desde() !== '' || this.hasta() !== '');
+  filtradas = computed(() => {
+    const texto = this.busqueda().trim().toLowerCase();
+    const estado = this.estadoSel();
+    const equipo = this.equipoSel();
+    const desde = this.desde();
+    const hasta = this.hasta();
+    if (desde && hasta && desde > hasta) return [];
+    return this.incidencias().filter((i) => {
+      const dia = diaLocal(i.fechaRegistro);
+      return (
+        (!estado || i.estado === estado) &&
+        (!equipo || i.equipoId === +equipo) &&
+        (!desde || dia >= desde) &&
+        (!hasta || dia <= hasta) &&
+        (!texto ||
+          `${this.nombreEquipo(i.equipoId)} ${i.usuarioNombre} ${i.descripcion}`.toLowerCase().includes(texto))
+      );
+    });
+  });
+  totalPaginas = computed(() => totalPaginasDe(this.filtradas().length, this.tamanioPagina));
+  paginaActual = computed(() => paginaValida(this.pagina(), this.filtradas().length, this.tamanioPagina));
+  visibles = computed(() => rebanar(this.filtradas(), this.pagina(), this.tamanioPagina));
   guardando = signal(false);
 
   form = this.fb.group({
@@ -125,6 +173,40 @@ export class IncidenciasComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.equipoId) this.form.patchValue({ equipoId: +this.equipoId });
+    this.actualizar();
+  }
+
+  buscar(texto: string): void {
+    this.busqueda.set(texto);
+    this.pagina.set(0);
+  }
+
+  elegirEstado(valor: string): void {
+    this.estadoSel.set(valor);
+    this.pagina.set(0);
+  }
+
+  elegirEquipo(valor: string): void {
+    this.equipoSel.set(valor);
+    this.pagina.set(0);
+  }
+
+  limpiarFiltros(): void {
+    this.busqueda.set('');
+    this.estadoSel.set('');
+    this.equipoSel.set('');
+    this.desde.set('');
+    this.hasta.set('');
+    this.pagina.set(0);
+  }
+
+  cambiarFechas(rango: RangoFecha): void {
+    this.desde.set(rango.desde);
+    this.hasta.set(rango.hasta);
+    this.pagina.set(0);
+  }
+
+  actualizar(): void {
     this.equiposApi.listar().subscribe({ next: (l) => this.equipos.set(l), error: (e) => this.avisos.error(e) });
     if (this.puedeVer) this.cargar();
   }
@@ -169,4 +251,10 @@ export class IncidenciasComponent implements OnInit {
   private cargar(): void {
     this.incidenciasApi.listar().subscribe({ next: (l) => this.incidencias.set(l), error: (e) => this.avisos.error(e) });
   }
+}
+
+function diaLocal(iso: string): string {
+  const d = new Date(iso);
+  const z = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
 }

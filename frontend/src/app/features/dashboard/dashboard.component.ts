@@ -16,11 +16,12 @@ import { paginaValida, rebanar, totalPaginasDe } from '../../core/utils/paginaci
 import { EstadoBadgeComponent } from '../../shared/components/estado-badge.component';
 import { PaginadorComponent } from '../../shared/components/paginador.component';
 import { StatCardComponent } from '../../shared/components/stat-card.component';
+import { BotonActualizarComponent } from '../../shared/components/boton-actualizar.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [
+  imports: [BotonActualizarComponent, 
     DatePipe, DecimalPipe, ReactiveFormsModule, RouterLink, StatCardComponent, EstadoBadgeComponent, PaginadorComponent,
   ],
   template: `
@@ -29,11 +30,14 @@ import { StatCardComponent } from '../../shared/components/stat-card.component';
         <h1>Hola, {{ auth.nombre() }}</h1>
         <p>Panel de indicadores de SmartLab Assurance</p>
       </div>
-      @if (verUtilizacion || verRecomendaciones) {
+      @if (verGestion || verUtilizacion || verRecomendaciones) {
         <div class="toolbar">
-          <label for="umbral">Umbral de horas</label>
-          <input id="umbral" type="number" min="1" style="width: 90px" [formControl]="umbral" />
-          <button class="btn btn-primary btn-sm" type="button" (click)="actualizarUmbrales()">Actualizar</button>
+          @if (verUtilizacion || verRecomendaciones) {
+            <label for="umbral">Umbral de horas</label>
+            <input id="umbral" type="number" min="1" style="width: 90px" [formControl]="umbral" />
+            <button class="btn btn-primary btn-sm" type="button" (click)="actualizarUmbrales()">Aplicar umbral</button>
+          }
+          <app-boton-actualizar (actualizar)="cargarTodo()" />
         </div>
       }
     </div>
@@ -84,6 +88,17 @@ import { StatCardComponent } from '../../shared/components/stat-card.component';
           <app-estado-badge estado="SOBREUTILIZADO" /> {{ u.sobreutilizados }}
           (sobreutilizado desde {{ u.umbralSobreutilizacionHoras }} h) · ordenados por horas de uso
         </p>
+        <div class="toolbar">
+          <input type="search" placeholder="Buscar equipo por nombre" style="min-width: 240px"
+            [value]="busquedaEquipo()" (input)="buscarEquipo($any($event.target).value)" />
+          <select [value]="clasificacionSel()" (change)="elegirClasificacion($any($event.target).value)" aria-label="Filtrar por clasificación">
+            <option value="">Todas las clasificaciones</option>
+            @for (c of clasificaciones; track c) { <option [value]="c">{{ c }}</option> }
+          </select>
+          @if (clasificacionSel() || busquedaEquipo().trim()) {
+            <button class="btn btn-sm" type="button" (click)="limpiarFiltrosUtilizacion()">Limpiar filtros</button>
+          }
+        </div>
         <div class="table-wrap">
           <table class="table">
             <thead><tr><th>Equipo</th><th>Horas de uso</th><th>Préstamos</th><th>Clasificación</th></tr></thead>
@@ -96,7 +111,7 @@ import { StatCardComponent } from '../../shared/components/stat-card.component';
                   <td><app-estado-badge [estado]="e.clasificacion" /></td>
                 </tr>
               } @empty {
-                <tr><td colspan="4" class="vacio">No hay equipos registrados</td></tr>
+                <tr><td colspan="4" class="vacio">{{ clasificacionSel() || busquedaEquipo().trim() ? 'Ningún equipo coincide con los filtros' : 'No hay equipos registrados' }}</td></tr>
               }
             </tbody>
           </table>
@@ -104,7 +119,7 @@ import { StatCardComponent } from '../../shared/components/stat-card.component';
         <app-paginador
           [pagina]="paginaUtilizacionActual()"
           [totalPaginas]="totalPaginasUtilizacion()"
-          [totalElementos]="equiposOrdenados().length"
+          [totalElementos]="equiposFiltrados().length"
           [tamanio]="tamanioPagina"
           (cambio)="paginaUtilizacion.set($event)"
         />
@@ -161,13 +176,45 @@ export class DashboardComponent implements OnInit {
   equiposOrdenados = computed(() =>
     [...(this.utilizacion()?.equipos ?? [])].sort((a, b) => b.horasUso - a.horasUso),
   );
-  totalPaginasUtilizacion = computed(() => totalPaginasDe(this.equiposOrdenados().length, this.tamanioPagina));
+  // Filtros del navegador sobre la tabla de utilización ya cargada
+  readonly clasificaciones = ['SUBUTILIZADO', 'NORMAL', 'SOBREUTILIZADO'] as const;
+  clasificacionSel = signal('');
+  busquedaEquipo = signal('');
+  equiposFiltrados = computed(() => {
+    const clasificacion = this.clasificacionSel();
+    const texto = this.busquedaEquipo().trim().toLowerCase();
+    return this.equiposOrdenados().filter(
+      (e) => (!clasificacion || e.clasificacion === clasificacion) && (!texto || e.nombre.toLowerCase().includes(texto)),
+    );
+  });
+  totalPaginasUtilizacion = computed(() => totalPaginasDe(this.equiposFiltrados().length, this.tamanioPagina));
   paginaUtilizacionActual = computed(() =>
-    paginaValida(this.paginaUtilizacion(), this.equiposOrdenados().length, this.tamanioPagina),
+    paginaValida(this.paginaUtilizacion(), this.equiposFiltrados().length, this.tamanioPagina),
   );
-  equiposVisibles = computed(() => rebanar(this.equiposOrdenados(), this.paginaUtilizacion(), this.tamanioPagina));
+  equiposVisibles = computed(() => rebanar(this.equiposFiltrados(), this.paginaUtilizacion(), this.tamanioPagina));
 
   ngOnInit(): void {
+    this.cargarTodo();
+  }
+
+  elegirClasificacion(valor: string): void {
+    this.clasificacionSel.set(valor);
+    this.paginaUtilizacion.set(0);
+  }
+
+  buscarEquipo(texto: string): void {
+    this.busquedaEquipo.set(texto);
+    this.paginaUtilizacion.set(0);
+  }
+
+  limpiarFiltrosUtilizacion(): void {
+    this.clasificacionSel.set('');
+    this.busquedaEquipo.set('');
+    this.paginaUtilizacion.set(0);
+  }
+
+  /** Vuelve a consultar todos los indicadores que el rol puede ver, con el umbral actual. */
+  cargarTodo(): void {
     if (this.verGestion) {
       this.cargar(this.reportes.noShow(), this.noShow);
       this.cargar(this.reportes.conflictos(), this.conflictos);

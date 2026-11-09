@@ -8,9 +8,11 @@ export class PrestamoService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/prestamos`;
 
-  pagina(pagina: number, tamanio: number, estado: EstadoPrestamo | '' = '') {
+  pagina(pagina: number, tamanio: number, estado: EstadoPrestamo | '' = '', desde = '', hasta = '') {
     let params = new HttpParams().set('pagina', pagina).set('tamanio', tamanio);
     if (estado) params = params.set('estado', estado);
+    if (desde) params = params.set('desde', desde);
+    if (hasta) params = params.set('hasta', hasta);
     return this.http.get<PaginaApi<Prestamo>>(`${this.base}/pagina`, { params });
   }
 

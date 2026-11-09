@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.Collection;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -104,15 +105,19 @@ public class MantenimientoService {
 
     // Listado por página, filtrable por estado, tipo y equipo
     public PaginaDTO<MantenimientoResponseDTO> listarPagina(int pagina, int tamanio, EstadoMantenimiento estado,
-                                                            TipoMantenimiento tipo, Long equipoId) {
+                                                            TipoMantenimiento tipo, Long equipoId,
+                                                            LocalDate desde, LocalDate hasta) {
+        RangoFechas.validar(desde, hasta);
         Pageable pageable = PaginaDTO.solicitud(pagina, tamanio);
         Collection<EstadoMantenimiento> estados =
                 estado == null ? List.of(EstadoMantenimiento.values()) : List.of(estado);
         Collection<TipoMantenimiento> tipos = tipo == null ? List.of(TipoMantenimiento.values()) : List.of(tipo);
+        LocalDateTime ini = RangoFechas.inicio(desde);
+        LocalDateTime fin = RangoFechas.fin(hasta);
 
         Page<Mantenimiento> resultado = equipoId == null
-                ? mantenimientoRepository.buscarPagina(estados, tipos, pageable)
-                : mantenimientoRepository.buscarPaginaPorEquipo(equipoId, estados, tipos, pageable);
+                ? mantenimientoRepository.buscarPagina(estados, tipos, ini, fin, pageable)
+                : mantenimientoRepository.buscarPaginaPorEquipo(equipoId, estados, tipos, ini, fin, pageable);
         return PaginaDTO.de(resultado, this::mapearAResponseDTO);
     }
 

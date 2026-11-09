@@ -1,5 +1,6 @@
 package com.utp.smartlab.controller;
 
+import com.utp.smartlab.dto.UsuarioOpcionDTO;
 import com.utp.smartlab.dto.UsuarioRequestDTO;
 import com.utp.smartlab.dto.UsuarioResponseDTO;
 import com.utp.smartlab.dto.UsuarioUpdateDTO;
@@ -39,6 +40,13 @@ public class UsuarioController {
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<List<UsuarioResponseDTO>> listar() {
         return ResponseEntity.ok(usuarioService.listar());
+    }
+
+    // Solo id y nombre, para el selector del filtro de reservas (técnico, coordinador y administrador)
+    @GetMapping("/opciones")
+    @PreAuthorize("hasAnyRole('TECNICO', 'COORDINADOR', 'ADMINISTRADOR')")
+    public ResponseEntity<List<UsuarioOpcionDTO>> listarOpciones() {
+        return ResponseEntity.ok(usuarioService.listarOpciones());
     }
 
     @GetMapping("/{id}")

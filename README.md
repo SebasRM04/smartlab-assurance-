@@ -72,6 +72,7 @@ smartlab-assurance/
 - CORS en `SecurityConfig`: permite `http://localhost:4200` y `http://127.0.0.1:4200` (propiedad `app.cors.allowed-origins`).
 - `GET /api/categorias` y `/{id}` también para el COORDINADOR: necesita la lista para registrar equipos. Crear, editar y eliminar categorías sigue siendo solo del ADMINISTRADOR.
 - Listados por página (`/api/reservas/pagina`, `/api/prestamos/pagina`, `/api/mantenimientos/pagina`) y `GET /api/reservas/pendientes-entrega`, la cola de entregas del técnico.
+- Filtro de reservas por usuario (`usuarioId` en `/api/reservas/pagina`) y `GET /api/usuarios/opciones` (solo id y nombre), ambos solo para técnico, coordinador y administrador.
 - Carga masiva de datos (`DatosMasivosSeeder`) con su generador y pruebas.
 - Un valor inválido en un filtro de la URL responde 400 y no 500.
-- Nuevos tests: CORS, paginación, generador de datos, carga masiva y permisos del coordinador sobre categorías. En total, 148 tests.
+- Nuevos tests: CORS, paginación, generador de datos, carga masiva y permisos del coordinador sobre categorías. En total, 155 tests.

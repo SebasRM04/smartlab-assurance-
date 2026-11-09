@@ -18,6 +18,7 @@ import java.util.Collection;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -94,9 +95,12 @@ public class PrestamoService {
     }
 
     // Listado por página, del préstamo más reciente al más antiguo
-    public PaginaDTO<PrestamoResponseDTO> listarPagina(int pagina, int tamanio, EstadoPrestamo estado) {
+    public PaginaDTO<PrestamoResponseDTO> listarPagina(int pagina, int tamanio, EstadoPrestamo estado,
+                                                       LocalDate desde, LocalDate hasta) {
+        RangoFechas.validar(desde, hasta);
         Collection<EstadoPrestamo> estados = estado == null ? List.of(EstadoPrestamo.values()) : List.of(estado);
-        Page<Prestamo> resultado = prestamoRepository.buscarPagina(estados, PaginaDTO.solicitud(pagina, tamanio));
+        Page<Prestamo> resultado = prestamoRepository.buscarPagina(
+                estados, RangoFechas.inicio(desde), RangoFechas.fin(hasta), PaginaDTO.solicitud(pagina, tamanio));
         return PaginaDTO.de(resultado, this::mapearAResponseDTO);
     }
 

@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -56,8 +57,10 @@ public class PrestamoController {
     public ResponseEntity<PaginaDTO<PrestamoResponseDTO>> listarPagina(
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "20") int tamanio,
-            @RequestParam(required = false) EstadoPrestamo estado) {
-        return ResponseEntity.ok(prestamoService.listarPagina(pagina, tamanio, estado));
+            @RequestParam(required = false) EstadoPrestamo estado,
+            @RequestParam(required = false) LocalDate desde,
+            @RequestParam(required = false) LocalDate hasta) {
+        return ResponseEntity.ok(prestamoService.listarPagina(pagina, tamanio, estado, desde, hasta));
     }
 
     @GetMapping("/vencidos")

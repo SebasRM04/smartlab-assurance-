@@ -56,11 +56,18 @@ public interface MantenimientoRepository extends JpaRepository<Mantenimiento, Lo
            JOIN FETCH m.equipo
            JOIN FETCH m.usuario
            WHERE m.estado IN :estados AND m.tipo IN :tipos
+             AND m.fechaProgramada >= :desde AND m.fechaProgramada <= :hasta
            ORDER BY m.fechaProgramada DESC, m.id DESC
            """,
-           countQuery = "SELECT COUNT(m) FROM Mantenimiento m WHERE m.estado IN :estados AND m.tipo IN :tipos")
+           countQuery = """
+           SELECT COUNT(m) FROM Mantenimiento m
+           WHERE m.estado IN :estados AND m.tipo IN :tipos
+             AND m.fechaProgramada >= :desde AND m.fechaProgramada <= :hasta
+           """)
     Page<Mantenimiento> buscarPagina(@Param("estados") Collection<EstadoMantenimiento> estados,
                                      @Param("tipos") Collection<TipoMantenimiento> tipos,
+                                     @Param("desde") LocalDateTime desde,
+                                     @Param("hasta") LocalDateTime hasta,
                                      Pageable pageable);
 
     @Query(value = """
@@ -68,12 +75,18 @@ public interface MantenimientoRepository extends JpaRepository<Mantenimiento, Lo
            JOIN FETCH m.equipo
            JOIN FETCH m.usuario
            WHERE m.equipo.id = :equipoId AND m.estado IN :estados AND m.tipo IN :tipos
+             AND m.fechaProgramada >= :desde AND m.fechaProgramada <= :hasta
            ORDER BY m.fechaProgramada DESC, m.id DESC
            """,
-           countQuery = "SELECT COUNT(m) FROM Mantenimiento m "
-                   + "WHERE m.equipo.id = :equipoId AND m.estado IN :estados AND m.tipo IN :tipos")
+           countQuery = """
+           SELECT COUNT(m) FROM Mantenimiento m
+           WHERE m.equipo.id = :equipoId AND m.estado IN :estados AND m.tipo IN :tipos
+             AND m.fechaProgramada >= :desde AND m.fechaProgramada <= :hasta
+           """)
     Page<Mantenimiento> buscarPaginaPorEquipo(@Param("equipoId") Long equipoId,
                                               @Param("estados") Collection<EstadoMantenimiento> estados,
                                               @Param("tipos") Collection<TipoMantenimiento> tipos,
+                                              @Param("desde") LocalDateTime desde,
+                                              @Param("hasta") LocalDateTime hasta,
                                               Pageable pageable);
 }

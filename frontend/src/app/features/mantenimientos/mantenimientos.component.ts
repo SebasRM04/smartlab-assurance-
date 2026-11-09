@@ -14,14 +14,17 @@ import { aIso, enHoras } from '../../core/utils/fechas';
 import { EstadoBadgeComponent } from '../../shared/components/estado-badge.component';
 import { FieldErrorComponent } from '../../shared/components/field-error.component';
 import { PaginadorComponent } from '../../shared/components/paginador.component';
+import { BotonActualizarComponent } from '../../shared/components/boton-actualizar.component';
+import { FiltroFechasComponent, RangoFecha } from '../../shared/components/filtro-fechas.component';
 
 @Component({
   selector: 'app-mantenimientos',
   standalone: true,
-  imports: [DatePipe, ReactiveFormsModule, RouterLink, EstadoBadgeComponent, FieldErrorComponent, PaginadorComponent],
+  imports: [BotonActualizarComponent, DatePipe, ReactiveFormsModule, RouterLink, EstadoBadgeComponent, FieldErrorComponent, PaginadorComponent, FiltroFechasComponent],
   template: `
     <div class="page-header">
       <div><h1>Mantenimientos</h1><p>Programar un mantenimiento bloquea el equipo hasta cerrar el último pendiente</p></div>
+      <app-boton-actualizar (actualizar)="actualizar()" />
     </div>
 
     @if (puedeOperar) {
@@ -60,15 +63,23 @@ import { PaginadorComponent } from '../../shared/components/paginador.component'
 
     <section class="card">
       <div class="toolbar">
-        <select #estadoSel (change)="cambiarEstado(estadoSel.value)">
+        <select [value]="estadoFiltro()" (change)="cambiarEstado($any($event.target).value)" aria-label="Filtrar por estado">
           <option value="">Todos los estados</option>
           <option value="PROGRAMADO">PROGRAMADO</option>
           <option value="CERRADO">CERRADO</option>
         </select>
-        <select #tipoSel (change)="cambiarTipo(tipoSel.value)">
+        <select [value]="tipoFiltro()" (change)="cambiarTipo($any($event.target).value)" aria-label="Filtrar por tipo">
           <option value="">Todos los tipos</option>
           @for (t of tipos; track t) { <option [value]="t">{{ t }}</option> }
         </select>
+        <select [value]="equipoFiltro() ?? ''" (change)="cambiarEquipo($any($event.target).value)" aria-label="Filtrar por equipo">
+          <option value="">Todos los equipos</option>
+          @for (e of equiposOrdenados(); track e.id) { <option [value]="e.id">{{ e.nombre }}</option> }
+        </select>
+        <app-filtro-fechas #fechas etiqueta="Programada" (cambio)="cambiarFechas($event)" />
+        @if (hayFiltros() || fechas.activo) {
+          <button class="btn btn-sm" type="button" (click)="fechas.limpiar(); limpiarFiltros()">Limpiar filtros</button>
+        }
       </div>
       <div class="table-wrap">
         <table class="table">
@@ -95,7 +106,7 @@ import { PaginadorComponent } from '../../shared/components/paginador.component'
                 </td>
               </tr>
             } @empty {
-              <tr><td colspan="8" class="vacio">No hay mantenimientos registrados</td></tr>
+              <tr><td colspan="8" class="vacio">{{ hayFiltros() ? 'No hay mantenimientos que coincidan con los filtros' : 'No hay mantenimientos registrados' }}</td></tr>
             }
           </tbody>
         </table>
@@ -127,6 +138,15 @@ export class MantenimientosComponent implements OnInit {
   numeroPagina = signal(0);
   estadoFiltro = signal<'PROGRAMADO' | 'CERRADO' | ''>('');
   tipoFiltro = signal<TipoMantenimiento | ''>('');
+  /** Filtro por equipo: se envía al servidor, que filtra toda la tabla y no solo la página. */
+  equipoFiltro = signal<number | null>(null);
+  equiposOrdenados = computed(() => [...this.equipos()].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+  desde = signal('');
+  hasta = signal('');
+  rangoInvalido = signal(false);
+  hayFiltros = computed(
+    () => this.estadoFiltro() !== '' || this.tipoFiltro() !== '' || this.equipoFiltro() !== null,
+  );
   equipos = signal<Equipo[]>([]);
   mantenimientos = computed(() => this.resultado()?.contenido ?? []);
   guardando = signal(false);
@@ -143,10 +163,37 @@ export class MantenimientosComponent implements OnInit {
     this.cargar();
   }
 
+  actualizar(): void {
+    this.cargarEquipos();
+    this.cargar();
+  }
+
   cambiarEstado(valor: string): void {
     this.estadoFiltro.set(valor as 'PROGRAMADO' | 'CERRADO' | '');
     this.numeroPagina.set(0);
     this.cargar();
+  }
+
+  cambiarEquipo(valor: string): void {
+    this.equipoFiltro.set(valor ? +valor : null);
+    this.numeroPagina.set(0);
+    this.cargar();
+  }
+
+  limpiarFiltros(): void {
+    this.estadoFiltro.set('');
+    this.tipoFiltro.set('');
+    this.equipoFiltro.set(null);
+    this.numeroPagina.set(0);
+    this.cargar();
+  }
+
+  cambiarFechas(rango: RangoFecha): void {
+    this.desde.set(rango.desde);
+    this.hasta.set(rango.hasta);
+    this.rangoInvalido.set(!!rango.desde && !!rango.hasta && rango.desde > rango.hasta);
+    this.numeroPagina.set(0);
+    if (!this.rangoInvalido()) this.cargar();
   }
 
   cambiarTipo(valor: string): void {
@@ -199,8 +246,9 @@ export class MantenimientosComponent implements OnInit {
   }
 
   private cargar(): void {
+    if (this.rangoInvalido()) return;
     this.mantenimientosApi
-      .pagina(this.numeroPagina(), this.tamanioPagina, this.estadoFiltro(), this.tipoFiltro())
+      .pagina(this.numeroPagina(), this.tamanioPagina, this.estadoFiltro(), this.tipoFiltro(), this.equipoFiltro(), this.desde(), this.hasta())
       .subscribe({
         next: (p) => {
           if (p.contenido.length === 0 && p.pagina > 0) {

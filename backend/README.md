@@ -86,7 +86,7 @@ Con miles de registros, el frontend usa los listados por página. Los `GET` que 
 
 | Endpoint | Parámetros opcionales | Orden |
 |---|---|---|
-| `GET /api/reservas/pagina` | `pagina`, `tamanio`, `estado`, `equipoId` | inicio de la reserva, de la más reciente a la más antigua |
+| `GET /api/reservas/pagina` | `pagina`, `tamanio`, `estado`, `equipoId`, `usuarioId` (solo técnico, coordinador y administrador; con otro rol responde 403) | inicio de la reserva, de la más reciente a la más antigua |
 | `GET /api/prestamos/pagina` | `pagina`, `tamanio`, `estado` | fecha de entrega, de la más reciente a la más antigua |
 | `GET /api/mantenimientos/pagina` | `pagina`, `tamanio`, `estado`, `tipo`, `equipoId` | fecha programada, de la más reciente a la más antigua |
 
@@ -160,6 +160,7 @@ La bitácora anota las escrituras que terminan bien: registro, login, reservas, 
 | `GET /api/equipos/reportes/utilizacion` | — | ✔ | ✔ | ✔ | ✔ |
 | `POST /api/reservas` | ✔ | — | ✔ | ✔ | ✔ |
 | `GET /api/reservas`, `/pagina`, `/{id}` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Filtrar reservas por usuario (`usuarioId` en `/pagina`) y `GET /api/usuarios/opciones` (solo id y nombre) | — | ✔ | — | ✔ | ✔ |
 | `GET /api/reservas/pendientes-entrega` | — | ✔ | — | ✔ | ✔ |
 | `PATCH /api/reservas/{id}/estado` | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Reportes de no-show y conflictos | — | — | ✔ | ✔ | ✔ |
@@ -171,7 +172,7 @@ La bitácora anota las escrituras que terminan bien: registro, login, reservas, 
 | `POST /api/incidencias` | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Ver incidencias | — | ✔ | ✔ | ✔ | ✔ |
 | Cambiar estado de incidencia | — | ✔ | — | ✔ | ✔ |
-| `/api/usuarios` y `/api/auditoria` | — | — | — | — | ✔ |
+| `/api/usuarios` (lista completa, alta, edición y baja) y `/api/auditoria` | — | — | — | — | ✔ |
 
 El estudiante, en reservas, solo opera las suyas. En `PATCH` únicamente puede pasar la propia de `CONFIRMADA` a `CANCELADA`. El resto de roles ve y cambia cualquier reserva.
 
@@ -192,10 +193,11 @@ El `PUT` de equipo cambia nombre, categoría y ubicación. El estado y las horas
 
 ## Pruebas
 
-`mvn test`: 148 tests. 63 de servicio, 67 de controller con JWT y 18 de configuración y carga de datos. Cubren las reglas, los indicadores, los préstamos vencidos, el cierre de mantenimiento con otro programado, la recomendación preventiva, el dashboard de utilización, el login, el registro público, el 401 sin token y el 403 por rol, y desde esta versión también:
+`mvn test`: 155 tests. 66 de servicio, 71 de controller con JWT y 18 de configuración y carga de datos. Cubren las reglas, los indicadores, los préstamos vencidos, el cierre de mantenimiento con otro programado, la recomendación preventiva, el dashboard de utilización, el login, el registro público, el 401 sin token y el 403 por rol, y desde esta versión también:
 
 - CORS: la solicitud previa del frontend se acepta y un origen desconocido se rechaza.
 - Listados por página: totales, orden, filtros, límite de tamaño, 400 por filtro inválido y reservas propias del estudiante, más la cola de reservas pendientes de entrega.
 - Permisos del coordinador para consultar categorías.
+- Filtro de reservas por usuario (`FiltroReservasPorUsuarioControllerTest` y 3 tests de servicio): solo ese usuario, combinado con equipo y con estado, 403 para docente y estudiante, y `/api/usuarios/opciones` con solo id y nombre (sin correo ni rol).
 - Generador de datos masivos (`PlanDatosMasivosTest`, sin base de datos): más de 5 000 registros, sin reservas superpuestas, sin reservas durante un mantenimiento, historial continuo, horas de uso exactas e indicadores en rangos realistas, repetido con varias fechas de arranque.
 - Carga masiva sobre la aplicación completa (`DatosMasivosSeederTest`, con su propia base en memoria): 180 equipos, más de 10 000 registros, no se duplica al ejecutarse de nuevo, indicadores coherentes y paginación con miles de filas.

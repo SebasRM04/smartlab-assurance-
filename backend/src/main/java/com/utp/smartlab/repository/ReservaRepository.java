@@ -40,33 +40,74 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
            JOIN FETCH r.equipo
            JOIN FETCH r.usuario
            WHERE r.estado IN :estados
+             AND r.fechaInicio >= :desde AND r.fechaInicio <= :hasta
            ORDER BY r.fechaInicio DESC, r.id DESC
            """,
-           countQuery = "SELECT COUNT(r) FROM Reserva r WHERE r.estado IN :estados")
-    Page<Reserva> buscarPagina(@Param("estados") Collection<EstadoReserva> estados, Pageable pageable);
+           countQuery = """
+           SELECT COUNT(r) FROM Reserva r
+           WHERE r.estado IN :estados AND r.fechaInicio >= :desde AND r.fechaInicio <= :hasta
+           """)
+    Page<Reserva> buscarPagina(@Param("estados") Collection<EstadoReserva> estados,
+                               @Param("desde") LocalDateTime desde,
+                               @Param("hasta") LocalDateTime hasta,
+                               Pageable pageable);
 
     @Query(value = """
            SELECT r FROM Reserva r
            JOIN FETCH r.equipo
            JOIN FETCH r.usuario
            WHERE r.equipo.id = :equipoId AND r.estado IN :estados
+             AND r.fechaInicio >= :desde AND r.fechaInicio <= :hasta
            ORDER BY r.fechaInicio DESC, r.id DESC
            """,
-           countQuery = "SELECT COUNT(r) FROM Reserva r WHERE r.equipo.id = :equipoId AND r.estado IN :estados")
+           countQuery = """
+           SELECT COUNT(r) FROM Reserva r
+           WHERE r.equipo.id = :equipoId AND r.estado IN :estados
+             AND r.fechaInicio >= :desde AND r.fechaInicio <= :hasta
+           """)
     Page<Reserva> buscarPaginaPorEquipo(@Param("equipoId") Long equipoId,
                                         @Param("estados") Collection<EstadoReserva> estados,
+                                        @Param("desde") LocalDateTime desde,
+                                        @Param("hasta") LocalDateTime hasta,
                                         Pageable pageable);
 
     @Query(value = """
            SELECT r FROM Reserva r
            JOIN FETCH r.equipo
            JOIN FETCH r.usuario
-           WHERE r.usuario.id = :usuarioId AND r.estado IN :estados
+           WHERE r.equipo.id = :equipoId AND r.usuario.id = :usuarioId AND r.estado IN :estados
+             AND r.fechaInicio >= :desde AND r.fechaInicio <= :hasta
            ORDER BY r.fechaInicio DESC, r.id DESC
            """,
-           countQuery = "SELECT COUNT(r) FROM Reserva r WHERE r.usuario.id = :usuarioId AND r.estado IN :estados")
+           countQuery = """
+           SELECT COUNT(r) FROM Reserva r
+           WHERE r.equipo.id = :equipoId AND r.usuario.id = :usuarioId AND r.estado IN :estados
+             AND r.fechaInicio >= :desde AND r.fechaInicio <= :hasta
+           """)
+    Page<Reserva> buscarPaginaPorEquipoYUsuario(@Param("equipoId") Long equipoId,
+                                                @Param("usuarioId") Long usuarioId,
+                                                @Param("estados") Collection<EstadoReserva> estados,
+                                                @Param("desde") LocalDateTime desde,
+                                                @Param("hasta") LocalDateTime hasta,
+                                                Pageable pageable);
+
+    @Query(value = """
+           SELECT r FROM Reserva r
+           JOIN FETCH r.equipo
+           JOIN FETCH r.usuario
+           WHERE r.usuario.id = :usuarioId AND r.estado IN :estados
+             AND r.fechaInicio >= :desde AND r.fechaInicio <= :hasta
+           ORDER BY r.fechaInicio DESC, r.id DESC
+           """,
+           countQuery = """
+           SELECT COUNT(r) FROM Reserva r
+           WHERE r.usuario.id = :usuarioId AND r.estado IN :estados
+             AND r.fechaInicio >= :desde AND r.fechaInicio <= :hasta
+           """)
     Page<Reserva> buscarPaginaPorUsuario(@Param("usuarioId") Long usuarioId,
                                          @Param("estados") Collection<EstadoReserva> estados,
+                                         @Param("desde") LocalDateTime desde,
+                                         @Param("hasta") LocalDateTime hasta,
                                          Pageable pageable);
 
     // Reservas CONFIRMADA que ya empezaron o empiezan antes de :hasta, de la más antigua a la más próxima.

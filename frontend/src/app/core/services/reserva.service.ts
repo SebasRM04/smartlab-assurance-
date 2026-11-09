@@ -9,10 +9,21 @@ export class ReservaService {
   private base = `${environment.apiUrl}/reservas`;
 
   /** Listado por página (el estudiante solo recibe las suyas). Con miles de reservas no se pide todo de una vez. */
-  pagina(pagina: number, tamanio: number, estado: EstadoReserva | '' = '', equipoId: number | null = null) {
+  pagina(
+    pagina: number,
+    tamanio: number,
+    estado: EstadoReserva | '' = '',
+    equipoId: number | null = null,
+    usuarioId: number | null = null,
+    desde = '',
+    hasta = '',
+  ) {
     let params = new HttpParams().set('pagina', pagina).set('tamanio', tamanio);
     if (estado) params = params.set('estado', estado);
     if (equipoId) params = params.set('equipoId', equipoId);
+    if (usuarioId) params = params.set('usuarioId', usuarioId);
+    if (desde) params = params.set('desde', desde);
+    if (hasta) params = params.set('hasta', hasta);
     return this.http.get<PaginaApi<Reserva>>(`${this.base}/pagina`, { params });
   }
 

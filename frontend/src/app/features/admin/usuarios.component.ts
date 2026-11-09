@@ -1,18 +1,20 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ROLES, Rol, Usuario } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { FieldErrorComponent } from '../../shared/components/field-error.component';
+import { BotonActualizarComponent } from '../../shared/components/boton-actualizar.component';
 
 @Component({
   selector: 'app-usuarios',
   standalone: true,
-  imports: [ReactiveFormsModule, FieldErrorComponent],
+  imports: [BotonActualizarComponent, ReactiveFormsModule, FieldErrorComponent],
   template: `
     <div class="page-header">
       <div><h1>Usuarios</h1><p>Alta, edición y baja de usuarios con su rol</p></div>
+      <app-boton-actualizar (actualizar)="actualizar()" />
     </div>
 
     <section class="card">
@@ -49,11 +51,23 @@ import { FieldErrorComponent } from '../../shared/components/field-error.compone
     </section>
 
     <section class="card">
+      <div class="toolbar">
+        <input type="search" placeholder="Buscar por nombre o correo" style="min-width: 260px"
+          [value]="busqueda()" (input)="buscar($any($event.target).value)" />
+        <select [value]="rolSel()" (change)="elegirRol($any($event.target).value)" aria-label="Filtrar por rol">
+          <option value="">Todos los roles</option>
+          @for (r of roles; track r) { <option [value]="r">{{ r }}</option> }
+        </select>
+        @if (hayFiltros()) {
+          <button class="btn btn-sm" type="button" (click)="limpiarFiltros()">Limpiar filtros</button>
+        }
+        <small>{{ filtrados().length }} de {{ usuarios().length }}</small>
+      </div>
       <div class="table-wrap">
         <table class="table">
           <thead><tr><th>#</th><th>Nombre</th><th>Correo</th><th>Rol</th><th></th></tr></thead>
           <tbody>
-            @for (u of usuarios(); track u.id) {
+            @for (u of filtrados(); track u.id) {
               <tr>
                 <td>{{ u.id }}</td>
                 <td>{{ u.nombre }}</td>
@@ -67,7 +81,7 @@ import { FieldErrorComponent } from '../../shared/components/field-error.compone
                 </td>
               </tr>
             } @empty {
-              <tr><td colspan="5" class="vacio">No hay usuarios</td></tr>
+              <tr><td colspan="5" class="vacio">{{ hayFiltros() ? 'No hay usuarios que coincidan con los filtros' : 'No hay usuarios' }}</td></tr>
             }
           </tbody>
         </table>
@@ -83,6 +97,18 @@ export class UsuariosComponent implements OnInit {
 
   readonly roles = ROLES;
   usuarios = signal<Usuario[]>([]);
+
+  // Filtros del navegador: se aplican sobre la lista ya cargada y se recalculan solos al recargarla
+  busqueda = signal('');
+  rolSel = signal('');
+  hayFiltros = computed(() => this.busqueda().trim() !== '' || this.rolSel() !== '');
+  filtrados = computed(() => {
+    const texto = this.busqueda().trim().toLowerCase();
+    const rol = this.rolSel();
+    return this.usuarios().filter(
+      (u) => (!rol || u.rol === rol) && (!texto || `${u.nombre} ${u.email}`.toLowerCase().includes(texto)),
+    );
+  });
   editandoId = signal<number | null>(null);
   guardando = signal(false);
 
@@ -94,6 +120,23 @@ export class UsuariosComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.cargar();
+  }
+
+  buscar(texto: string): void {
+    this.busqueda.set(texto);
+  }
+
+  elegirRol(valor: string): void {
+    this.rolSel.set(valor);
+  }
+
+  limpiarFiltros(): void {
+    this.busqueda.set('');
+    this.rolSel.set('');
+  }
+
+  actualizar(): void {
     this.cargar();
   }
 
