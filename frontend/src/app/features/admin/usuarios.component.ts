@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ROLES, Rol, Usuario } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
@@ -17,7 +17,7 @@ import { BotonActualizarComponent } from '../../shared/components/boton-actualiz
       <app-boton-actualizar (actualizar)="actualizar()" />
     </div>
 
-    <section class="card">
+    <section class="card" #formulario>
       <h3>{{ editandoId() ? 'Editar usuario #' + editandoId() : 'Nuevo usuario' }}</h3>
       <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
         <div class="form-grid">
@@ -112,6 +112,8 @@ export class UsuariosComponent implements OnInit {
   editandoId = signal<number | null>(null);
   guardando = signal(false);
 
+  @ViewChild('formulario') formulario?: ElementRef<HTMLElement>;
+
   form = this.fb.nonNullable.group({
     nombre: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
@@ -146,6 +148,12 @@ export class UsuariosComponent implements OnInit {
     this.form.controls.password.setValidators([Validators.minLength(6)]);
     this.form.controls.password.updateValueAndValidity();
     this.form.reset({ nombre: u.nombre, email: u.email, password: '', rol: u.rol });
+    this.irAlFormulario();
+  }
+
+  private irAlFormulario(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.formulario?.nativeElement.querySelector('input')?.focus({ preventScroll: true });
   }
 
   cancelarEdicion(): void {
