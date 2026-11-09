@@ -24,20 +24,25 @@ type Pestana = 'historial' | 'utilizacion' | 'incidencias';
           <h1>{{ e.nombre }}</h1>
           <p>{{ e.categoriaNombre }} · {{ e.ubicacion || 'Sin ubicación' }}</p>
         </div>
-        <div class="toolbar">
-          @if (puedeReservar && disponibilidad() !== 'EN_MANTENIMIENTO') {
-            <a class="btn btn-primary" routerLink="/reservas" [queryParams]="{ equipoId: e.id }">Reservar</a>
-          }
-          @if (puedeMantener) {
-            <a class="btn" routerLink="/mantenimientos" [queryParams]="{ equipoId: e.id }">Programar mantenimiento</a>
-          }
-          <a class="btn" routerLink="/incidencias" [queryParams]="{ equipoId: e.id }">Reportar incidencia</a>
-          @if (puedeEditar) {
-            <a class="btn" [routerLink]="['/equipos', e.id, 'editar']">Editar</a>
-          }
-          @if (puedeEliminar) {
-            <button class="btn btn-danger" type="button" (click)="eliminar(e)">Eliminar</button>
-          }
+        <div>
+          <div class="toolbar">
+            @if (puedeReservar && disponibilidad() !== 'EN_MANTENIMIENTO') {
+              <a class="btn btn-primary" routerLink="/reservas" [queryParams]="{ equipoId: e.id }">Reservar</a>
+            }
+            @if (puedeMantener) {
+              <a class="btn" routerLink="/mantenimientos" [queryParams]="{ equipoId: e.id }">Programar mantenimiento</a>
+            }
+            <a class="btn" routerLink="/incidencias" [queryParams]="{ equipoId: e.id }">Reportar incidencia</a>
+            @if (puedeEditar) {
+              <a class="btn" [routerLink]="['/equipos', e.id, 'editar']">Editar</a>
+            }
+            @if (puedeEliminar) {
+              <button class="btn btn-danger" type="button" (click)="eliminar(e)">Eliminar</button>
+            }
+          </div>
+          <div style="text-align: right; margin-top: 0.5rem">
+              <a routerLink="/equipos" style="font-size: 0.9rem">← Volver a equipos</a>
+            </div>
         </div>
       </div>
 
