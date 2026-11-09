@@ -16,10 +16,18 @@
   background: $color-primario-oscuro;
   color: #fff;
   padding: 1.2rem 0.9rem;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  overflow-y: auto;
 
   @include movil {
     width: 100%;
     padding: 0.7rem;
+    position: static;
+    height: auto;
+    overflow-y: visible;
   }
 }
 
@@ -75,6 +83,11 @@ nav {
 }
 
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: flex-end;
   display: flex;
   justify-content: flex-end;
   align-items: center;
