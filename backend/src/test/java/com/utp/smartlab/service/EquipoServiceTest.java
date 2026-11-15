@@ -72,6 +72,7 @@ class EquipoServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(equipoRepository.buscarParaOperacion(any())).thenAnswer(inv -> equipoRepository.findById(inv.getArgument(0)));
         equipoDisponible = Equipo.builder()
                 .id(1L).nombre("Microscopio A").estado(EstadoEquipo.DISPONIBLE).contadorUsoHoras(0).build();
 

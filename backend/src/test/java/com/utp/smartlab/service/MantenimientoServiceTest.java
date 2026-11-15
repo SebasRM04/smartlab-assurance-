@@ -54,7 +54,7 @@ class MantenimientoServiceTest {
 
     private Equipo equipoMock(Long id) {
         return Equipo.builder().id(id).nombre("Equipo de prueba")
-                .estado(EstadoEquipo.DISPONIBLE).contadorUsoHoras(0).build();
+                .estado(EstadoEquipo.EN_MANTENIMIENTO).contadorUsoHoras(0).build();
     }
 
     @Test
@@ -63,7 +63,7 @@ class MantenimientoServiceTest {
         MantenimientoRequestDTO dto = new MantenimientoRequestDTO(
                 1L, TipoMantenimiento.PREVENTIVO, LocalDateTime.now().plusDays(1));
 
-        when(equipoService.obtenerEntidadPorId(1L)).thenReturn(equipo);
+        when(equipoService.obtenerParaOperacion(1L)).thenReturn(equipo);
         when(mantenimientoRepository.save(any(Mantenimiento.class))).thenAnswer(inv -> {
             Mantenimiento m = inv.getArgument(0);
             m.setId(30L);

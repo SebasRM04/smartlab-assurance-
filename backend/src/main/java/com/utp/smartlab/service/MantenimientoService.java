@@ -46,7 +46,10 @@ public class MantenimientoService {
 
     @Transactional
     public MantenimientoResponseDTO programar(MantenimientoRequestDTO dto, Usuario usuario) {
-        Equipo equipo = equipoService.obtenerEntidadPorId(dto.getEquipoId());
+        Equipo equipo = equipoService.obtenerParaOperacion(dto.getEquipoId());
+        if (equipo.getEstado() == EstadoEquipo.FUERA_DE_SERVICIO) {
+            throw new MantenimientoInvalidoException("No se puede programar mantenimiento de un equipo FUERA_DE_SERVICIO");
+        }
 
         Mantenimiento mantenimiento = Mantenimiento.builder()
                 .equipo(equipo)
@@ -81,6 +84,7 @@ public class MantenimientoService {
             throw new MantenimientoInvalidoException("El mantenimiento " + mantenimientoId + " ya fue cerrado");
         }
 
+        equipoService.obtenerParaOperacion(mantenimiento.getEquipo().getId());
         mantenimiento.setFechaEjecucion(LocalDateTime.now());
         mantenimiento.setEstado(EstadoMantenimiento.CERRADO);
         Mantenimiento guardado = mantenimientoRepository.save(mantenimiento);
@@ -89,7 +93,7 @@ public class MantenimientoService {
         // dejaría un estado que no coincide con la situación real (exactitud de disponibilidad).
         Long equipoId = mantenimiento.getEquipo().getId();
         long otrosAbiertos = mantenimientoRepository.contarProgramadosDelEquipoExcepto(equipoId, mantenimientoId);
-        if (otrosAbiertos == 0) {
+        if (otrosAbiertos == 0 && mantenimiento.getEquipo().getEstado() == EstadoEquipo.EN_MANTENIMIENTO) {
             equipoService.actualizarEstado(equipoId, EstadoEquipo.DISPONIBLE, responsable,
                     "Mantenimiento cerrado");
         }

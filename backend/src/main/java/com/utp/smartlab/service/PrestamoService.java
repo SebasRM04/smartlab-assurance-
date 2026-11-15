@@ -53,6 +53,8 @@ public class PrestamoService {
             throw new PrestamoInvalidoException("La reserva " + dto.getReservaId() + " ya tiene un préstamo asociado");
         });
 
+        equipoService.validarDisponibleParaReserva(reserva.getEquipo().getId());
+
         Prestamo prestamo = Prestamo.builder()
                 .reserva(reserva)
                 .fechaEntrega(LocalDateTime.now())
