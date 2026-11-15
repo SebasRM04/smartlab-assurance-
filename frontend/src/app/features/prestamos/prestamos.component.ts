@@ -35,8 +35,8 @@ import { FiltroFechasComponent, RangoFecha } from '../../shared/components/filtr
               <select id="reserva" formControlName="reservaId">
                 <option [ngValue]="null">Selecciona una reserva</option>
                 @for (r of pendientes(); track r.id) {
-                  <option [ngValue]="r.id">
-                    #{{ r.id }} · {{ nombreEquipo(r.equipoId) }} · {{ r.usuarioNombre }} · {{ r.fechaInicio | date: 'dd/MM HH:mm' }}
+                  <option [ngValue]="r.id" [disabled]="!equipoDisponible(r.equipoId)">
+                    #{{ r.id }} · {{ nombreEquipo(r.equipoId) }} {{ equipoDisponible(r.equipoId) ? '' : '(no disponible)' }} · {{ r.usuarioNombre }} · {{ r.fechaInicio | date: 'dd/MM HH:mm' }}
                   </option>
                 }
               </select>
@@ -168,6 +168,10 @@ export class PrestamosComponent implements OnInit {
     if (this.puedeOperar) this.cargarPendientes();
     this.equiposApi.listar().subscribe({ next: (l) => this.equipos.set(l), error: (e) => this.avisos.error(e) });
     this.cargarPrestamos();
+  }
+
+  equipoDisponible(id: number): boolean {
+    return this.equipos().some(e => e.id === id && e.estado === 'DISPONIBLE');
   }
 
   nombreEquipo(id: number): string {

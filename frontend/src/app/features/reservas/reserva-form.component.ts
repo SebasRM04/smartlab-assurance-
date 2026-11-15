@@ -72,6 +72,11 @@ export class ReservaFormComponent {
       return;
     }
     const v = this.form.getRawValue();
+    if (!this.equipos.some(e => e.id === v.equipoId && e.estado === 'DISPONIBLE')) {
+      this.form.controls.equipoId.setErrors({ noDisponible: true });
+      this.form.controls.equipoId.markAsTouched();
+      return;
+    }
     this.crear.emit({ equipoId: v.equipoId as number, fechaInicio: aIso(v.fechaInicio ?? ''), fechaFin: aIso(v.fechaFin ?? '') });
   }
 }

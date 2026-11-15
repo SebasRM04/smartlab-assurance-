@@ -1,3 +1,5 @@
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FieldErrorComponent } from '../../shared/components/field-error.component';
 import { DatePipe } from '@angular/common';
 import { Component, Input, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
@@ -16,7 +18,7 @@ type Pestana = 'historial' | 'utilizacion' | 'incidencias';
 @Component({
   selector: 'app-equipo-detalle',
   standalone: true,
-  imports: [DatePipe, RouterLink, EstadoBadgeComponent],
+  imports: [DatePipe, RouterLink, EstadoBadgeComponent, ReactiveFormsModule, FieldErrorComponent],
   template: `
     @if (equipo(); as e) {
       <div class="page-header">
@@ -26,10 +28,10 @@ type Pestana = 'historial' | 'utilizacion' | 'incidencias';
         </div>
         <div>
           <div class="toolbar">
-            @if (puedeReservar && disponibilidad() !== 'EN_MANTENIMIENTO') {
+            @if (puedeReservar && disponibilidad() === 'DISPONIBLE') {
               <a class="btn btn-primary" routerLink="/reservas" [queryParams]="{ equipoId: e.id }">Reservar</a>
             }
-            @if (puedeMantener) {
+            @if (puedeMantener && disponibilidad() && disponibilidad() !== 'FUERA_DE_SERVICIO') {
               <a class="btn" routerLink="/mantenimientos" [queryParams]="{ equipoId: e.id }">Programar mantenimiento</a>
             }
             <a class="btn" routerLink="/incidencias" [queryParams]="{ equipoId: e.id }">Reportar incidencia</a>
@@ -53,6 +55,25 @@ type Pestana = 'historial' | 'utilizacion' | 'incidencias';
           <div><dt>Identificador</dt><dd>#{{ e.id }}</dd></div>
         </dl>
       </div>
+
+      @if (puedeCambiarEstado && (e.estado === 'DISPONIBLE' || e.estado === 'FUERA_DE_SERVICIO')) {
+        <section class="card">
+          <h3>{{ e.estado === 'DISPONIBLE' ? 'Marcar fuera de servicio' : 'Reactivar equipo' }}</h3>
+          <p>{{ e.estado === 'DISPONIBLE'
+            ? 'Se bloquearán nuevas reservas y entregas. Las reservas existentes y los préstamos activos se conservarán.'
+            : 'Confirma que el equipo es apto para su uso. No debe tener préstamos activos ni mantenimientos abiertos.' }}</p>
+          <form [formGroup]="estadoForm" (ngSubmit)="cambiarEstado()" novalidate>
+            <div class="form-group">
+              <label for="motivo-estado">Motivo del cambio</label>
+              <textarea id="motivo-estado" formControlName="motivo" maxlength="255" rows="2"></textarea>
+              <app-field-error [control]="estadoForm.controls.motivo" />
+            </div>
+            <button class="btn" [class.btn-danger]="e.estado === 'DISPONIBLE'" type="submit" [disabled]="cambiandoEstado()">
+              {{ cambiandoEstado() ? 'Guardando…' : e.estado === 'DISPONIBLE' ? 'Marcar fuera de servicio' : 'Reactivar equipo' }}
+            </button>
+          </form>
+        </section>
+      }
 
       @if (puedeVerHistorial) {
         <div class="card">
@@ -140,6 +161,33 @@ export class EquipoDetalleComponent implements OnInit {
   private avisos = inject(NotificationService);
   private auth = inject(AuthService);
   private router = inject(Router);
+
+  private fb = inject(FormBuilder);
+  readonly puedeCambiarEstado = this.auth.tieneRol(PERMISOS.equipoCambiarEstado);
+  cambiandoEstado = signal(false);
+  estadoForm = this.fb.nonNullable.group({ motivo: ['', [Validators.required, Validators.maxLength(255), Validators.pattern(/\S/)]] });
+
+  cambiarEstado(): void {
+    const equipo = this.equipo();
+    if (!equipo || !this.puedeCambiarEstado || this.cambiandoEstado()) return;
+    if (equipo.estado !== 'DISPONIBLE' && equipo.estado !== 'FUERA_DE_SERVICIO') return;
+    if (this.estadoForm.invalid) { this.estadoForm.markAllAsTouched(); return; }
+    this.cambiandoEstado.set(true);
+    this.equipos.cambiarEstado(equipo.id, {
+      estado: equipo.estado === 'DISPONIBLE' ? 'FUERA_DE_SERVICIO' : 'DISPONIBLE',
+      motivo: this.estadoForm.controls.motivo.value.trim(),
+    }).subscribe({
+      next: (actualizado) => {
+        this.equipo.set(actualizado);
+        this.disponibilidad.set(actualizado.estado);
+        this.estadoForm.reset();
+        this.cambiandoEstado.set(false);
+        this.cambiar('historial');
+        this.avisos.exito('Estado del equipo actualizado');
+      },
+      error: (error) => { this.cambiandoEstado.set(false); this.avisos.error(error); },
+    });
+  }
 
   readonly puedeReservar = this.auth.tieneRol(PERMISOS.reservaCrear);
   readonly puedeMantener = this.auth.tieneRol(PERMISOS.mantenimientoOperar);

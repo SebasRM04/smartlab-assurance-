@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import {
-  Equipo, EquipoRecomendacion, EquipoRequest, EstadoEquipo, HistorialEstado, UtilizacionDashboard,
+  EquipoEstadoUpdate, Equipo, EquipoRecomendacion, EquipoRequest, EstadoEquipo, HistorialEstado, UtilizacionDashboard,
   UtilizacionEquipo,
 } from '../models/api.models';
 
@@ -15,6 +15,7 @@ export class EquipoService {
   obtener(id: number) { return this.http.get<Equipo>(`${this.base}/${id}`); }
   crear(dto: EquipoRequest) { return this.http.post<Equipo>(this.base, dto); }
   actualizar(id: number, dto: EquipoRequest) { return this.http.put<Equipo>(`${this.base}/${id}`, dto); }
+  cambiarEstado(id: number, dto: EquipoEstadoUpdate) { return this.http.patch<Equipo>(`${this.base}/${id}/estado`, dto); }
   eliminar(id: number) { return this.http.delete<void>(`${this.base}/${id}`); }
 
   disponibilidad(id: number) { return this.http.get<{ estado: EstadoEquipo }>(`${this.base}/${id}/disponibilidad`); }

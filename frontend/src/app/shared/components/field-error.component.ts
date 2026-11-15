@@ -14,6 +14,7 @@ export class FieldErrorComponent {
     const c = this.control;
     if (!c || !c.errors || !(c.touched || c.dirty)) return null;
     const e = c.errors;
+    if (e['noDisponible']) return 'Selecciona un equipo disponible';
     if (e['required']) return 'Este campo es obligatorio';
     if (e['email']) return 'El correo no tiene un formato válido';
     if (e['minlength']) return `Debe tener al menos ${e['minlength'].requiredLength} caracteres`;

@@ -36,7 +36,7 @@ import { FiltroFechasComponent, RangoFecha } from '../../shared/components/filtr
               <label for="equipo">Equipo</label>
               <select id="equipo" formControlName="equipoId">
                 <option [ngValue]="null">Selecciona un equipo</option>
-                @for (e of equipos(); track e.id) { <option [ngValue]="e.id">{{ e.nombre }} ({{ e.estado }})</option> }
+                @for (e of equipos(); track e.id) { <option [ngValue]="e.id" [disabled]="e.estado === 'FUERA_DE_SERVICIO'">{{ e.nombre }} ({{ e.estado }})</option> }
               </select>
               <app-field-error [control]="form.controls.equipoId" />
             </div>
