@@ -1,6 +1,8 @@
 package com.utp.smartlab.service;
 
 import com.utp.smartlab.dto.DisponibilidadMetricasDTO;
+import com.utp.smartlab.dto.EquipoEstadoUpdateDTO;
+import com.utp.smartlab.entity.EstadoPrestamo;
 import com.utp.smartlab.dto.EquipoRecomendacionDTO;
 import com.utp.smartlab.dto.EquipoRequestDTO;
 import com.utp.smartlab.dto.EquipoResponseDTO;
@@ -151,11 +153,38 @@ public class EquipoService {
         return buscarEntidadPorId(id).getEstado();
     }
 
-    // Regla de negocio 1: un equipo en mantenimiento no se reserva
-    public Equipo validarDisponibleParaReserva(Long equipoId) {
-        Equipo equipo = buscarEntidadPorId(equipoId);
+    @Transactional
+    public Equipo obtenerParaOperacion(Long id) {
+        return equipoRepository.buscarParaOperacion(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el equipo con id " + id));
+    }
 
-        if (equipo.getEstado() == EstadoEquipo.EN_MANTENIMIENTO) {
+    @Transactional
+    public EquipoResponseDTO cambiarEstado(Long id, EquipoEstadoUpdateDTO dto) {
+        Equipo equipo = obtenerParaOperacion(id);
+        EstadoEquipo anterior = equipo.getEstado();
+        EstadoEquipo nuevo = dto.estado();
+        if (!((anterior == EstadoEquipo.DISPONIBLE && nuevo == EstadoEquipo.FUERA_DE_SERVICIO)
+                || (anterior == EstadoEquipo.FUERA_DE_SERVICIO && nuevo == EstadoEquipo.DISPONIBLE))) {
+            throw new OperacionNoPermitidaException("Solo se permite dar de baja un equipo DISPONIBLE o reactivar uno FUERA_DE_SERVICIO");
+        }
+        if (mantenimientoRepository.existsByEquipoIdAndEstado(id, EstadoMantenimiento.PROGRAMADO)) {
+            throw new OperacionNoPermitidaException("El equipo tiene mantenimientos abiertos");
+        }
+        if (nuevo == EstadoEquipo.DISPONIBLE && prestamoRepository.existsByReservaEquipoIdAndEstado(
+                id, EstadoPrestamo.ACTIVO)) {
+            throw new OperacionNoPermitidaException("Devuelve el préstamo activo antes de reactivar el equipo");
+        }
+        actualizarEstado(id, nuevo, usuarioActualService.obtener(), dto.motivo().trim());
+        return mapearAResponseDTO(equipo);
+    }
+
+    // Solo un equipo disponible admite nuevas reservas o entregas.
+    @Transactional
+    public Equipo validarDisponibleParaReserva(Long equipoId) {
+        Equipo equipo = obtenerParaOperacion(equipoId);
+
+        if (equipo.getEstado() != EstadoEquipo.DISPONIBLE) {
             throw new EquipoNoDisponibleException(
                     "El equipo '" + equipo.getNombre() + "' no está disponible (estado actual: " + equipo.getEstado() + ")");
         }
@@ -165,7 +194,7 @@ public class EquipoService {
     // Regla de negocio 5: cada cambio de estado queda en el historial
     @Transactional
     public void actualizarEstado(Long equipoId, EstadoEquipo nuevoEstado, Usuario responsable, String motivo) {
-        Equipo equipo = buscarEntidadPorId(equipoId);
+        Equipo equipo = obtenerParaOperacion(equipoId);
         EstadoEquipo estadoAnterior = equipo.getEstado();
 
         equipo.setEstado(nuevoEstado);

@@ -6,7 +6,8 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "watch": "ng build --watch --configuration development"
+    "watch": "ng build --watch --configuration development",
+    "test": "node --import ./tests/register.mjs --test tests/equipos.test.mjs"
   },
   "dependencies": {
     "@angular/common": "^19.2.0",

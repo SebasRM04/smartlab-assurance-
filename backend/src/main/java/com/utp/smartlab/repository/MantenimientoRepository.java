@@ -15,6 +15,8 @@ import java.util.List;
 
 public interface MantenimientoRepository extends JpaRepository<Mantenimiento, Long> {
 
+    boolean existsByEquipoIdAndEstado(Long equipoId, EstadoMantenimiento estado);
+
     @Query("SELECT m FROM Mantenimiento m WHERE m.equipo.id = :equipoId")
     List<Mantenimiento> buscarPorEquipoId(@Param("equipoId") Long equipoId);
 

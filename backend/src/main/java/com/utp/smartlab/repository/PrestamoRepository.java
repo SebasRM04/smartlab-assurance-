@@ -1,6 +1,7 @@
 package com.utp.smartlab.repository;
 
 import com.utp.smartlab.entity.Prestamo;
+import com.utp.smartlab.entity.EstadoPrestamo;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,8 @@ import java.util.Collection;
 import java.util.Optional;
 
 public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
+
+    boolean existsByReservaEquipoIdAndEstado(Long equipoId, EstadoPrestamo estado);
 
     @Query("SELECT p FROM Prestamo p WHERE p.reserva.id = :reservaId")
     Optional<Prestamo> buscarPorReservaId(@Param("reservaId") Long reservaId);

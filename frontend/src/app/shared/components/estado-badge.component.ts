@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 
 const TONOS: Record<string, string> = {
-  DISPONIBLE: 'ok', EN_MANTENIMIENTO: 'warn',
+  DISPONIBLE: 'ok', EN_MANTENIMIENTO: 'warn', FUERA_DE_SERVICIO: 'danger',
   CONFIRMADA: 'info', ATENDIDA: 'ok', NO_SHOW: 'danger', CANCELADA: 'neutral',
   ACTIVO: 'info', DEVUELTO: 'ok',
   PROGRAMADO: 'info', CERRADO: 'ok',

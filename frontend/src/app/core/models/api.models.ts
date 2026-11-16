@@ -1,7 +1,7 @@
 // Tipos que reflejan los DTO del backend Spring Boot (paquete com.utp.smartlab.dto)
 
 export type Rol = 'ESTUDIANTE' | 'TECNICO' | 'DOCENTE' | 'COORDINADOR' | 'ADMINISTRADOR';
-export type EstadoEquipo = 'DISPONIBLE' | 'EN_MANTENIMIENTO';
+export type EstadoEquipo = 'DISPONIBLE' | 'EN_MANTENIMIENTO' | 'FUERA_DE_SERVICIO';
 export type EstadoReserva = 'CONFIRMADA' | 'ATENDIDA' | 'NO_SHOW' | 'CANCELADA';
 export type EstadoPrestamo = 'ACTIVO' | 'DEVUELTO';
 export type EstadoMantenimiento = 'PROGRAMADO' | 'CERRADO';
@@ -10,7 +10,7 @@ export type EstadoIncidencia = 'ABIERTA' | 'EN_REVISION' | 'RESUELTA';
 export type ClasificacionUtilizacion = 'SUBUTILIZADO' | 'NORMAL' | 'SOBREUTILIZADO';
 
 export const ROLES: Rol[] = ['ESTUDIANTE', 'TECNICO', 'DOCENTE', 'COORDINADOR', 'ADMINISTRADOR'];
-export const ESTADOS_EQUIPO: EstadoEquipo[] = ['DISPONIBLE', 'EN_MANTENIMIENTO'];
+export const ESTADOS_EQUIPO: EstadoEquipo[] = ['DISPONIBLE', 'EN_MANTENIMIENTO', 'FUERA_DE_SERVICIO'];
 export const ESTADOS_RESERVA: EstadoReserva[] = ['CONFIRMADA', 'ATENDIDA', 'NO_SHOW', 'CANCELADA'];
 export const TIPOS_MANTENIMIENTO: TipoMantenimiento[] = ['PREVENTIVO', 'CORRECTIVO'];
 
@@ -52,6 +52,7 @@ export interface Equipo {
   estado: EstadoEquipo;
   contadorUsoHoras: number;
 }
+export interface EquipoEstadoUpdate { estado: 'DISPONIBLE' | 'FUERA_DE_SERVICIO'; motivo: string; }
 export interface EquipoRequest { nombre: string; categoriaId: number; ubicacion: string; }
 export interface HistorialEstado {
   estadoAnterior: EstadoEquipo | null;

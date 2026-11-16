@@ -4,6 +4,7 @@ import { Rol } from './models/api.models';
 const PERSONAL: Rol[] = ['TECNICO', 'DOCENTE', 'COORDINADOR', 'ADMINISTRADOR'];
 
 export const PERMISOS = {
+  equipoCambiarEstado: ['COORDINADOR', 'ADMINISTRADOR'] as Rol[],
   equipoEscribir: ['COORDINADOR', 'ADMINISTRADOR'] as Rol[],
   equipoEliminar: ['ADMINISTRADOR'] as Rol[],
   equipoHistorial: PERSONAL,

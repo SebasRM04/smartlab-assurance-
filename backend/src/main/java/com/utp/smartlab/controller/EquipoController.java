@@ -1,6 +1,8 @@
 package com.utp.smartlab.controller;
 
 import com.utp.smartlab.dto.DisponibilidadMetricasDTO;
+import com.utp.smartlab.dto.EquipoEstadoUpdateDTO;
+import org.springframework.transaction.annotation.Transactional;
 import com.utp.smartlab.dto.EquipoRecomendacionDTO;
 import com.utp.smartlab.dto.EquipoRequestDTO;
 import com.utp.smartlab.dto.EquipoResponseDTO;
@@ -46,6 +48,17 @@ public class EquipoController {
                                                          @Valid @RequestBody EquipoRequestDTO dto) {
         EquipoResponseDTO actualizado = equipoService.actualizar(id, dto);
         auditoriaService.registrar("ACTUALIZAR_EQUIPO", "Equipo#" + id, "Datos actualizados: " + actualizado.getNombre());
+        return ResponseEntity.ok(actualizado);
+    }
+
+    @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAnyRole('COORDINADOR', 'ADMINISTRADOR')")
+    @Transactional
+    public ResponseEntity<EquipoResponseDTO> cambiarEstado(@PathVariable Long id,
+            @Valid @RequestBody EquipoEstadoUpdateDTO dto) {
+        EquipoResponseDTO actualizado = equipoService.cambiarEstado(id, dto);
+        auditoriaService.registrar("CAMBIAR_ESTADO_EQUIPO", "Equipo#" + id,
+                dto.estado() + ": " + dto.motivo().trim());
         return ResponseEntity.ok(actualizado);
     }
 

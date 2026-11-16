@@ -33,6 +33,12 @@ public class Equipo {
     @Column(nullable = false)
     private EstadoEquipo estado;
 
+    // Detecta operaciones concurrentes sin bloquear el registro REQUIRES_NEW de conflictos.
+    @Version
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    @Builder.Default
+    private Long version = 0L;
+
     // Indicador: recomendación de mantenimiento por horas de uso
     @Column(name = "contador_uso_horas", nullable = false)
     @Builder.Default
