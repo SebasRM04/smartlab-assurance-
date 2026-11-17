@@ -8,6 +8,18 @@ Sistema de gestión de equipos de laboratorio (Caso 10 · Desarrollo Web Integra
 
 Los tests del backend siguen usando H2 en memoria. No hace falta MySQL para `mvn test`.
 
+## Usuarios de prueba
+
+`DatosPruebaSeeder` carga el escenario al primer arranque (`app.seed.datos-demo=true`).
+
+| Correo | Rol | Contraseña |
+|---|---|---|
+| `admin@smartlab.com` | ADMINISTRADOR | `Admin123!` |
+| `coordinador@smartlab.com` | COORDINADOR | `Demo123!` |
+| `tecnico@smartlab.com` | TECNICO | `Demo123!` |
+| `docente@smartlab.com` | DOCENTE | `Demo123!` |
+| `estudiante@smartlab.com` | ESTUDIANTE | `Demo123!` |
+
 ## Levantar todo
 
 MySQL tiene que estar encendido. Crea la base una sola vez:
