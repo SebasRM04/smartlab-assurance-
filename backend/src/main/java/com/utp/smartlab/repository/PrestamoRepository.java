@@ -1,6 +1,7 @@
 package com.utp.smartlab.repository;
 
 import com.utp.smartlab.entity.Prestamo;
+import com.utp.smartlab.entity.EstadoPrestamo;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,8 @@ import java.util.Collection;
 import java.util.Optional;
 
 public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
+
+    boolean existsByReservaEquipoIdAndEstado(Long equipoId, EstadoPrestamo estado);
 
     @Query("SELECT p FROM Prestamo p WHERE p.reserva.id = :reservaId")
     Optional<Prestamo> buscarPorReservaId(@Param("reservaId") Long reservaId);
@@ -59,9 +62,18 @@ public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
            SELECT p FROM Prestamo p
            JOIN FETCH p.reserva
            WHERE p.estado IN :estados
+             AND p.fechaEntrega >= :desde
+             AND p.fechaEntrega <= :hasta
            ORDER BY p.fechaEntrega DESC, p.id DESC
            """,
-           countQuery = "SELECT COUNT(p) FROM Prestamo p WHERE p.estado IN :estados")
+           countQuery = """
+           SELECT COUNT(p) FROM Prestamo p
+           WHERE p.estado IN :estados
+             AND p.fechaEntrega >= :desde
+             AND p.fechaEntrega <= :hasta
+           """)
     Page<Prestamo> buscarPagina(@Param("estados") Collection<com.utp.smartlab.entity.EstadoPrestamo> estados,
+                                @Param("desde") java.time.LocalDateTime desde,
+                                @Param("hasta") java.time.LocalDateTime hasta,
                                 Pageable pageable);
 }

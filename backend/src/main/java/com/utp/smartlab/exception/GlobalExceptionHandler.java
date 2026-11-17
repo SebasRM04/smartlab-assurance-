@@ -1,6 +1,8 @@
 package com.utp.smartlab.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -93,6 +95,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> manejarParametroInvalido(MethodArgumentTypeMismatchException ex) {
         return construirRespuesta(HttpStatus.BAD_REQUEST,
                 "El valor '" + ex.getValue() + "' no es válido para el parámetro '" + ex.getName() + "'");
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> manejarArgumentoInvalido(IllegalArgumentException ex) {
+        return construirRespuesta(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> manejarCambioConcurrente(Exception ex) {
+        return construirRespuesta(HttpStatus.CONFLICT, "El equipo cambió durante la operación. Actualiza los datos y vuelve a intentarlo");
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> manejarJsonInvalido(Exception ex) {
+        return construirRespuesta(HttpStatus.BAD_REQUEST, "El cuerpo de la solicitud contiene datos o un estado inválido");
     }
 
     @ExceptionHandler(Exception.class)

@@ -1,0 +1,32 @@
+@use 'variables' as *;
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.95rem 1.05rem;
+  background: $color-superficie;
+  border: 1px solid $color-borde;
+  border-left: 4px solid $color-primario;
+  border-radius: $radio;
+  box-shadow: $sombra;
+
+  &.ok { border-left-color: $color-exito; }
+  &.alerta { border-left-color: $color-alerta; }
+  &.peligro { border-left-color: $color-peligro; }
+}
+
+.titulo {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: $color-texto-suave;
+}
+
+.valor {
+  font-size: 1.7rem;
+}
+
+.detalle {
+  color: $color-texto-suave;
+}

@@ -1,0 +1,38 @@
+@use 'variables' as *;
+
+.auth {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: linear-gradient(135deg, $color-primario-oscuro, $color-primario);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: $color-superficie;
+  border-radius: 12px;
+  padding: 1.8rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+
+  h1 {
+    margin-bottom: 0.1rem;
+    font-size: 1.5rem;
+  }
+
+  .sub {
+    margin: 0 0 1.2rem;
+    color: $color-texto-suave;
+  }
+
+  .form-group {
+    margin-bottom: 0.85rem;
+  }
+
+  .pie {
+    margin: 1rem 0 0;
+    text-align: center;
+    font-size: 0.88rem;
+  }
+}
