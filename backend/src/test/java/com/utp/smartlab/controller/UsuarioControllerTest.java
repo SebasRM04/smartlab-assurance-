@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -68,7 +69,7 @@ class UsuarioControllerTest {
                 .andExpect(jsonPath("$.rol").value("DOCENTE"));
 
         mockMvc.perform(api.auth(delete("/api/usuarios/" + id), token))
-                .andExpect(status().isConflict())
+                .andExpect(status().isNoContent())
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("bitácora")));
     }
 
@@ -132,4 +133,27 @@ class UsuarioControllerTest {
     private String unico(String prefijo) {
         return prefijo + "." + System.nanoTime() + "@smartlab.com";
     }
+
+    @Test
+void desactivar_impideElLogin_yActivarLoDevuelve() throws Exception {
+    String email = unico("baja");
+    long id = api.crearUsuario(token, "Baja", email, "Demo123!", NombreRol.ESTUDIANTE);
+
+    mockMvc.perform(api.auth(patch("/api/usuarios/" + id + "/activo"), token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"activo\":false}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.activo").value(false));
+
+    mockMvc.perform(post("/api/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(new LoginRequestDTO(email, "Demo123!"))))
+            .andExpect(status().isUnauthorized());
+
+    mockMvc.perform(api.auth(patch("/api/usuarios/" + id + "/activo"), token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"activo\":true}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.activo").value(true));
+}
 }

@@ -14,6 +14,7 @@ export class UsuarioService {
   crear(dto: UsuarioRequest) { return this.http.post<Usuario>(this.base, dto); }
   actualizar(id: number, dto: UsuarioUpdate) { return this.http.put<Usuario>(`${this.base}/${id}`, dto); }
   eliminar(id: number) { return this.http.delete<void>(`${this.base}/${id}`); }
+  cambiarActivo(id: number, activo: boolean) { return this.http.patch<Usuario>(`${this.base}/${id}/activo`, { activo }); }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -24,3 +25,5 @@ export class AuditoriaService {
   listar() { return this.http.get<Auditoria[]>(this.base); }
   listarPorUsuario(usuarioId: number) { return this.http.get<Auditoria[]>(`${this.base}/usuario/${usuarioId}`); }
 }
+
+

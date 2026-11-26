@@ -13,4 +13,11 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> buscarPorEmail(@Param("email") String email);
 
     boolean existsByEmail(String email);
+
+    @Query("""
+            SELECT COUNT(u) FROM Usuario u
+            WHERE u.rol.nombre = com.utp.smartlab.entity.NombreRol.ADMINISTRADOR
+              AND u.activo = true
+            """)
+    long contarAdministradoresActivos();
 }

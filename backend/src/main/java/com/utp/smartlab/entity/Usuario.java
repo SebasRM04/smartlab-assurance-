@@ -32,4 +32,8 @@ public class Usuario {
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "rol_id", nullable = false)
     private Rol rol;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean activo = true;
 }

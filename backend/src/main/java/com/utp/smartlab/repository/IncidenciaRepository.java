@@ -14,4 +14,6 @@ public interface IncidenciaRepository extends JpaRepository<Incidencia, Long> {
 
     @Query("SELECT COUNT(i) FROM Incidencia i WHERE i.equipo.id = :equipoId")
     long contarPorEquipoId(@Param("equipoId") Long equipoId);
+
+    boolean existsByUsuarioId(Long usuarioId);
 }

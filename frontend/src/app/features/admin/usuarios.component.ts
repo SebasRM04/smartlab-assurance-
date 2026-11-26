@@ -65,7 +65,7 @@ import { BotonActualizarComponent } from '../../shared/components/boton-actualiz
       </div>
       <div class="table-wrap">
         <table class="table">
-          <thead><tr><th>#</th><th>Nombre</th><th>Correo</th><th>Rol</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
           <tbody>
             @for (u of filtrados(); track u.id) {
               <tr>
@@ -73,6 +73,22 @@ import { BotonActualizarComponent } from '../../shared/components/boton-actualiz
                 <td>{{ u.nombre }}</td>
                 <td>{{ u.email }}</td>
                 <td><span class="badge neutral">{{ u.rol }}</span></td>
+                <td>
+                  <span class="badge" [class.ok]="u.activo" [class.danger]="!u.activo">
+                    {{ u.activo ? 'Activo' : 'Desactivado' }}
+                  </span>
+                </td>
+                <td class="acciones">
+                  <button class="btn btn-sm" type="button" (click)="editar(u)">Editar</button>
+                  @if (u.id !== auth.sesion()?.usuarioId) {
+                    @if (u.activo) {
+                      <button class="btn btn-sm" type="button" (click)="cambiarActivo(u, false)">Desactivar</button>
+                    } @else {
+                      <button class="btn btn-sm" type="button" (click)="cambiarActivo(u, true)">Activar</button>
+                    }
+                    <button class="btn btn-sm btn-danger" type="button" (click)="eliminar(u)">Eliminar</button>
+                  }
+                </td>
                 <td class="acciones">
                   <button class="btn btn-sm" type="button" (click)="editar(u)">Editar</button>
                   @if (u.id !== auth.sesion()?.usuarioId) {
@@ -199,6 +215,18 @@ export class UsuariosComponent implements OnInit {
       error: (e) => this.avisos.error(e),
     });
   }
+  
+  cambiarActivo(u: Usuario, activo: boolean): void {
+  const verbo = activo ? 'Activar' : 'Desactivar';
+  if (!confirm(`${verbo} al usuario ${u.nombre}?`)) return;
+  this.usuariosApi.cambiarActivo(u.id, activo).subscribe({
+    next: () => {
+      this.avisos.exito(activo ? 'Usuario activado' : 'Usuario desactivado');
+      this.cargar();
+    },
+    error: (e) => this.avisos.error(e),
+  });
+}
 
   private cargar(): void {
     this.usuariosApi.listar().subscribe({ next: (l) => this.usuarios.set(l), error: (e) => this.avisos.error(e) });
