@@ -69,8 +69,7 @@ class UsuarioControllerTest {
                 .andExpect(jsonPath("$.rol").value("DOCENTE"));
 
         mockMvc.perform(api.auth(delete("/api/usuarios/" + id), token))
-                .andExpect(status().isNoContent())
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("bitácora")));
+                .andExpect(status().isNoContent());
     }
 
     @Test

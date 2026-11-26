@@ -89,15 +89,9 @@ import { BotonActualizarComponent } from '../../shared/components/boton-actualiz
                     <button class="btn btn-sm btn-danger" type="button" (click)="eliminar(u)">Eliminar</button>
                   }
                 </td>
-                <td class="acciones">
-                  <button class="btn btn-sm" type="button" (click)="editar(u)">Editar</button>
-                  @if (u.id !== auth.sesion()?.usuarioId) {
-                    <button class="btn btn-sm btn-danger" type="button" (click)="eliminar(u)">Eliminar</button>
-                  }
-                </td>
               </tr>
             } @empty {
-              <tr><td colspan="5" class="vacio">{{ hayFiltros() ? 'No hay usuarios que coincidan con los filtros' : 'No hay usuarios' }}</td></tr>
+              <tr><td colspan="6" class="vacio">{{ hayFiltros() ? 'No hay usuarios que coincidan con los filtros' : 'No hay usuarios' }}</td></tr>
             }
           </tbody>
         </table>
@@ -215,7 +209,7 @@ export class UsuariosComponent implements OnInit {
       error: (e) => this.avisos.error(e),
     });
   }
-  
+
   cambiarActivo(u: Usuario, activo: boolean): void {
   const verbo = activo ? 'Activar' : 'Desactivar';
   if (!confirm(`${verbo} al usuario ${u.nombre}?`)) return;
