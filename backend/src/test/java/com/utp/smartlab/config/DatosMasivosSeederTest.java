@@ -71,14 +71,14 @@ class DatosMasivosSeederTest {
     }
 
     @Test
-    void cargaLos180EquiposYMasDe10000Registros() {
+    void cargaLos180EquiposYMasDe20000Registros() {
         assertEquals(180, equipoRepository.count(), "equipos");
-        assertTrue(reservaRepository.count() >= 5000, "reservas: " + reservaRepository.count());
+        assertTrue(reservaRepository.count() >= 10000, "reservas: " + reservaRepository.count());
 
         long total = equipoRepository.count() + reservaRepository.count() + prestamoRepository.count()
                 + mantenimientoRepository.count() + solicitudRechazadaRepository.count()
                 + incidenciaRepository.count() + historialRepository.count() + usuarioRepository.count();
-        assertTrue(total >= 10000, "registros en total: " + total);
+        assertTrue(total >= 20000, "registros en total: " + total);
     }
 
     @Test
@@ -129,7 +129,7 @@ class DatosMasivosSeederTest {
 
         JsonNode reservas = obtener("/api/reservas/pagina?pagina=0&tamanio=20", token);
         assertEquals(20, reservas.get("contenido").size(), "filas de la página");
-        assertTrue(reservas.get("totalElementos").asLong() >= 5000, "total de reservas");
+        assertTrue(reservas.get("totalElementos").asLong() >= 10000, "total de reservas");
         assertTrue(reservas.get("totalPaginas").asInt() >= 250, "total de páginas");
 
         JsonNode prestamos = obtener("/api/prestamos/pagina?estado=DEVUELTO&tamanio=50", token);

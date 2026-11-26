@@ -41,8 +41,8 @@ class PlanDatosMasivosTest {
 
     @Test
     void supera5000Registros_yTieneLosEquiposDelCaso() {
-        assertTrue(plan.totalRegistros() >= 5000, "registros: " + plan.totalRegistros());
-        assertTrue(plan.reservas().size() >= 5000, "reservas: " + plan.reservas().size());
+        assertTrue(plan.totalRegistros() >= 20000, "registros: " + plan.totalRegistros());
+        assertTrue(plan.reservas().size() >= 10000, "reservas: " + plan.reservas().size());
         assertEquals(EQUIPOS, plan.equipos().size(), "equipos");
     }
 
