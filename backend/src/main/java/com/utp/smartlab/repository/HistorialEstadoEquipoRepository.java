@@ -21,4 +21,8 @@ public interface HistorialEstadoEquipoRepository extends JpaRepository<Historial
     @Modifying
     @Query("DELETE FROM HistorialEstadoEquipo h WHERE h.equipo.id = :equipoId")
     void eliminarPorEquipoId(@Param("equipoId") Long equipoId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE HistorialEstadoEquipo h SET h.usuario = null WHERE h.usuario.id = :usuarioId")
+    void desvincularUsuario(@Param("usuarioId") Long usuarioId);
 }

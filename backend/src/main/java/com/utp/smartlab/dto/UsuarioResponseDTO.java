@@ -18,4 +18,5 @@ public class UsuarioResponseDTO {
     private String nombre;
     private String email;
     private NombreRol rol;
+    private boolean activo;
 }

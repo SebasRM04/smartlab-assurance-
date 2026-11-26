@@ -48,7 +48,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Carga un escenario grande (más de 10 000 registros) para probar el frontend y medir los indicadores.
+ * Carga un escenario grande (más de 20 000 registros) para probar el frontend y medir los indicadores.
  * Se activa con {@code app.seed.datos-masivos=true} y se ejecuta una sola vez: si ya hay 180 equipos o más,
  * no hace nada. Escribe directo en los repositorios (no pasa por los servicios), así que no deja auditoría.
  * Todos los usuarios generados usan la contraseña {@code Demo123!}.

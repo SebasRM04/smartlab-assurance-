@@ -2,6 +2,7 @@ package com.utp.smartlab.repository;
 
 import com.utp.smartlab.entity.Auditoria;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,4 +15,8 @@ public interface AuditoriaRepository extends JpaRepository<Auditoria, Long> {
 
     @Query("SELECT COUNT(a) FROM Auditoria a WHERE a.usuario.id = :usuarioId")
     long contarPorUsuarioId(@Param("usuarioId") Long usuarioId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM Auditoria a WHERE a.usuario.id = :usuarioId")
+    void eliminarPorUsuarioId(@Param("usuarioId") Long usuarioId);
 }

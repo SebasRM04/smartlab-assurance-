@@ -1,5 +1,6 @@
 package com.utp.smartlab.controller;
 
+import com.utp.smartlab.dto.UsuarioActivoDTO;
 import com.utp.smartlab.dto.UsuarioOpcionDTO;
 import com.utp.smartlab.dto.UsuarioRequestDTO;
 import com.utp.smartlab.dto.UsuarioResponseDTO;
@@ -63,6 +64,18 @@ public class UsuarioController {
         UsuarioResponseDTO actualizado = usuarioService.actualizar(id, dto, authentication.getName());
         auditoriaService.registrar("ACTUALIZAR_USUARIO", "Usuario#" + id,
                 "Usuario " + actualizado.getEmail() + " actualizado (rol " + actualizado.getRol() + ")");
+        return ResponseEntity.ok(actualizado);
+    }
+
+    @PatchMapping("/{id}/activo")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<UsuarioResponseDTO> cambiarActivo(@PathVariable Long id,
+                                                            @Valid @RequestBody UsuarioActivoDTO dto,
+                                                            Authentication authentication) {
+        UsuarioResponseDTO actualizado = usuarioService.cambiarActivo(id, dto.activo(), authentication.getName());
+        auditoriaService.registrar(dto.activo() ? "ACTIVAR_USUARIO" : "DESACTIVAR_USUARIO",
+                "Usuario#" + id, "Usuario " + actualizado.getEmail()
+                        + (dto.activo() ? " activado" : " desactivado"));
         return ResponseEntity.ok(actualizado);
     }
 

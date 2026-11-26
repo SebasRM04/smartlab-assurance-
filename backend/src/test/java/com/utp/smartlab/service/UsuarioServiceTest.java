@@ -12,6 +12,10 @@ import com.utp.smartlab.exception.CredencialesInvalidasException;
 import com.utp.smartlab.exception.EmailDuplicadoException;
 import com.utp.smartlab.exception.OperacionNoPermitidaException;
 import com.utp.smartlab.repository.AuditoriaRepository;
+import com.utp.smartlab.repository.HistorialEstadoEquipoRepository;
+import com.utp.smartlab.repository.IncidenciaRepository;
+import com.utp.smartlab.repository.MantenimientoRepository;
+import com.utp.smartlab.repository.ReservaRepository;
 import com.utp.smartlab.repository.RolRepository;
 import com.utp.smartlab.repository.UsuarioRepository;
 import com.utp.smartlab.security.JwtUtil;
@@ -52,6 +56,15 @@ class UsuarioServiceTest {
 
     @InjectMocks
     private UsuarioService usuarioService;
+
+    @Mock
+    private ReservaRepository reservaRepository;
+    @Mock
+    private MantenimientoRepository mantenimientoRepository;
+    @Mock
+    private IncidenciaRepository incidenciaRepository;
+    @Mock
+    private HistorialEstadoEquipoRepository historialRepository;
 
     @Test
     void registrar_guardaElHash_yNoLaContrasenaEnClaro() {
@@ -155,27 +168,29 @@ class UsuarioServiceTest {
     }
 
     @Test
-    void eliminar_rechaza_cuandoTieneAccionesEnLaBitacora() {
+    void eliminar_rechaza_cuandoTieneReservas() {
         Usuario usuario = usuario(5L, "doc@smartlab.com", NombreRol.DOCENTE);
         when(usuarioRepository.findById(5L)).thenReturn(Optional.of(usuario));
-        when(auditoriaRepository.contarPorUsuarioId(5L)).thenReturn(2L);
+        when(reservaRepository.existsByUsuarioId(5L)).thenReturn(true);
 
         assertThatThrownBy(() -> usuarioService.eliminar(5L, "admin@smartlab.com"))
                 .isInstanceOf(OperacionNoPermitidaException.class)
-                .hasMessageContaining("bitácora");
-        verify(usuarioRepository, never()).delete(any());
+                .hasMessageContaining("reservas");
+        verify(usuarioRepository, never()).deleteById(any());
     }
 
     @Test
-    void eliminar_borra_cuandoNoTieneAuditoria() {
+    void eliminar_borraLaBitacora_aunqueHayaIniciadoSesion() {
         Usuario usuario = usuario(5L, "doc@smartlab.com", NombreRol.DOCENTE);
         when(usuarioRepository.findById(5L)).thenReturn(Optional.of(usuario));
-        when(auditoriaRepository.contarPorUsuarioId(5L)).thenReturn(0L);
 
         usuarioService.eliminar(5L, "admin@smartlab.com");
 
-        verify(usuarioRepository).delete(usuario);
+        verify(historialRepository).desvincularUsuario(5L);
+        verify(auditoriaRepository).eliminarPorUsuarioId(5L);
+        verify(usuarioRepository).deleteById(5L);
     }
+
 
     private Usuario usuario(Long id, String email, NombreRol rol) {
         return Usuario.builder()

@@ -18,7 +18,7 @@ import java.util.Random;
 
 /**
  * Genera, sin tocar la base de datos, un escenario grande y coherente con las reglas del sistema
- * (más de 5000 registros). El resultado es un plan de datos simples; {@code DatosMasivosSeeder}
+ * (más de 20 000 registros). El resultado es un plan de datos simples; {@code DatosMasivosSeeder}
  * lo convierte en entidades y lo guarda.
  *
  * Garantías del plan, que {@code PlanDatosMasivosTest} comprueba:
@@ -404,7 +404,7 @@ public final class PlanDatosMasivos {
             if (sumaPesos == 0) {
                 return;
             }
-            double objetivoTotal = 34.0 * n;
+            double objetivoTotal = 80.0 * n;
 
             for (int i = 0; i < n; i++) {
                 if (peso[i] == 0) {

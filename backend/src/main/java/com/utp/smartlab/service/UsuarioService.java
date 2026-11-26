@@ -6,6 +6,7 @@ import com.utp.smartlab.dto.UsuarioOpcionDTO;
 import com.utp.smartlab.dto.UsuarioRequestDTO;
 import com.utp.smartlab.dto.UsuarioResponseDTO;
 import com.utp.smartlab.dto.UsuarioUpdateDTO;
+import com.utp.smartlab.entity.NombreRol;
 import com.utp.smartlab.entity.Rol;
 import com.utp.smartlab.entity.Usuario;
 import com.utp.smartlab.exception.CredencialesInvalidasException;
@@ -13,6 +14,10 @@ import com.utp.smartlab.exception.EmailDuplicadoException;
 import com.utp.smartlab.exception.OperacionNoPermitidaException;
 import com.utp.smartlab.exception.RecursoNoEncontradoException;
 import com.utp.smartlab.repository.AuditoriaRepository;
+import com.utp.smartlab.repository.HistorialEstadoEquipoRepository;
+import com.utp.smartlab.repository.IncidenciaRepository;
+import com.utp.smartlab.repository.MantenimientoRepository;
+import com.utp.smartlab.repository.ReservaRepository;
 import com.utp.smartlab.repository.RolRepository;
 import com.utp.smartlab.repository.UsuarioRepository;
 import com.utp.smartlab.security.JwtUtil;
@@ -32,17 +37,29 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuditoriaRepository auditoriaRepository;
+    private final ReservaRepository reservaRepository;
+    private final MantenimientoRepository mantenimientoRepository;
+    private final IncidenciaRepository incidenciaRepository;
+    private final HistorialEstadoEquipoRepository historialRepository;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
                            RolRepository rolRepository,
                            PasswordEncoder passwordEncoder,
                            JwtUtil jwtUtil,
-                           AuditoriaRepository auditoriaRepository) {
+                           AuditoriaRepository auditoriaRepository,
+                           MantenimientoRepository mantenimientoRepository,
+                           ReservaRepository reservaRepository,
+                           IncidenciaRepository incidenciaRepository, 
+                           HistorialEstadoEquipoRepository historialRepository) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.auditoriaRepository = auditoriaRepository;
+        this.mantenimientoRepository = mantenimientoRepository;
+        this.reservaRepository = reservaRepository;
+        this.incidenciaRepository = incidenciaRepository;
+        this.historialRepository = historialRepository;
     }
 
     @Transactional
@@ -116,14 +133,22 @@ public class UsuarioService {
         if (usuario.getEmail().equals(emailSolicitante)) {
             throw new OperacionNoPermitidaException("No puedes eliminar tu propio usuario");
         }
-        // Regla de negocio: no se borra a quien ya tiene auditoría
-        if (auditoriaRepository.contarPorUsuarioId(id) > 0) {
+        if (reservaRepository.existsByUsuarioId(id)) {
             throw new OperacionNoPermitidaException(
-                    "No se puede eliminar a '" + usuario.getNombre()
-                            + "': tiene acciones registradas en la bitácora de auditoría, que se conservan por trazabilidad");
+                    "No se puede eliminar a '" + usuario.getNombre() + "': tiene reservas");
+        }
+        if (mantenimientoRepository.existsByUsuarioId(id)) {
+            throw new OperacionNoPermitidaException(
+                    "No se puede eliminar a '" + usuario.getNombre() + "': tiene mantenimientos");
+        }
+        if (incidenciaRepository.existsByUsuarioId(id)) {
+            throw new OperacionNoPermitidaException(
+                    "No se puede eliminar a '" + usuario.getNombre() + "': tiene incidencias");
         }
 
-        usuarioRepository.delete(usuario);
+        historialRepository.desvincularUsuario(id);
+        auditoriaRepository.eliminarPorUsuarioId(id);
+        usuarioRepository.deleteById(id);
     }
 
     public JwtResponseDTO login(LoginRequestDTO dto) {
@@ -132,6 +157,11 @@ public class UsuarioService {
 
         if (!passwordEncoder.matches(dto.getPassword(), usuario.getPasswordHash())) {
             throw new CredencialesInvalidasException("Email o contraseña incorrectos");
+        }
+        
+        if (!usuario.isActivo()) {
+        throw new CredencialesInvalidasException(
+                "La cuenta está desactivada. Pide a un administrador que la active");
         }
 
         String token = jwtUtil.generarToken(usuario.getEmail(), usuario.getRol().getNombre().name());
@@ -157,6 +187,29 @@ public class UsuarioService {
                 .nombre(usuario.getNombre())
                 .email(usuario.getEmail())
                 .rol(usuario.getRol().getNombre())
+                .activo(usuario.isActivo())
                 .build();
+    }
+
+    @Transactional
+    public UsuarioResponseDTO cambiarActivo(Long id, boolean activo, String emailSolicitante) {
+        Usuario usuario = buscarEntidadPorId(id);
+
+        if (!activo && usuario.getEmail().equals(emailSolicitante)) {
+            throw new OperacionNoPermitidaException("No puedes desactivar tu propio usuario");
+        }
+        if (usuario.isActivo() == activo) {
+            throw new OperacionNoPermitidaException(activo
+                    ? "El usuario ya está activo"
+                    : "El usuario ya está desactivado");
+        }
+        if (!activo
+                && usuario.getRol().getNombre() == NombreRol.ADMINISTRADOR
+                && usuarioRepository.contarAdministradoresActivos() <= 1) {
+            throw new OperacionNoPermitidaException("No se puede desactivar al último administrador activo");
+        }
+
+        usuario.setActivo(activo);
+        return mapearAResponseDTO(usuarioRepository.save(usuario));
     }
 }

@@ -126,4 +126,5 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
              AND r.fechaInicio <= :hasta
            """)
     Page<Reserva> buscarPendientesDeEntrega(@Param("hasta") LocalDateTime hasta, Pageable pageable);
+    boolean existsByUsuarioId(Long usuarioId);
 }

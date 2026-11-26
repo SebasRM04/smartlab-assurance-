@@ -34,7 +34,7 @@ export interface Sesion {
 }
 
 // ---- Usuarios y categorías
-export interface Usuario { id: number; nombre: string; email: string; rol: Rol; }
+export interface Usuario { id: number; nombre: string; email: string; rol: Rol; activo: boolean;}
 /** Dato mínimo de un usuario (id y nombre) para el selector del filtro de reservas. */
 export interface UsuarioOpcion { id: number; nombre: string; }
 export interface UsuarioRequest { nombre: string; email: string; password: string; rol: Rol; }

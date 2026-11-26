@@ -91,4 +91,6 @@ public interface MantenimientoRepository extends JpaRepository<Mantenimiento, Lo
                                               @Param("desde") LocalDateTime desde,
                                               @Param("hasta") LocalDateTime hasta,
                                               Pageable pageable);
+
+    boolean existsByUsuarioId(Long usuarioId);
 }
